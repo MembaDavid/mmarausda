@@ -1,0 +1,169 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  role      Role
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  offerings      Offering[]
+  events         Event[]        @relation("UserEvents")
+  announcements  Announcement[]
+  prayerRequests PrayerRequest[]
+  visitations    Visitation[]
+  memberProfile  Member?
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  MEMBER
+  GUEST
+}
+
+model Member {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+
+  baptismDate DateTime?
+  membershipStatus MembershipStatus @default(ACTIVE)
+  address     String?
+  dateOfBirth DateTime?
+  gender      Gender?
+  joinedAt    DateTime @default(now())
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INACTIVE
+  TRANSFERRED
+  DECEASED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+model Event {
+  id               String   @id @default(uuid())
+  title            String
+  description      String
+  start            DateTime
+  end              DateTime
+  category         EventCategory
+  registrationLink String?
+
+  createdBy String
+  creator   User     @relation("UserEvents", fields: [createdBy], references: [id])
+}
+
+enum EventCategory {
+  SABBATH
+  YOUTH
+  WOMEN
+  BIBLE_STUDY
+  SOCIAL
+  GENERAL
+}
+
+model Sermon {
+  id          String     @id @default(uuid())
+  title       String
+  preacher    String
+  deliveredAt DateTime
+  mediaUrl    String
+  type        SermonType
+  description String?
+}
+
+enum SermonType {
+  VIDEO
+  AUDIO
+  TEXT
+}
+
+model Announcement {
+  id        String   @id @default(uuid())
+  title     String
+  body      String
+  createdAt DateTime @default(now())
+
+  createdBy String
+  creator   User     @relation(fields: [createdBy], references: [id])
+}
+
+model Offering {
+  id            String           @id @default(uuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id])
+
+  category      OfferingCategory
+  amount        Float
+  paymentMethod String
+  transactionId String
+  date          DateTime @default(now())
+}
+
+enum OfferingCategory {
+  TITHE
+  COMBINED_OFFERING
+  CHURCH_BUDGET
+  WELFARE
+  MISSION
+}
+
+model PrayerRequest {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  request   String
+  status    PrayerStatus @default(PENDING)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum PrayerStatus {
+  PENDING
+  IN_PROGRESS
+  ANSWERED
+}
+
+model Visitation {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+
+  purpose     String
+  scheduledAt DateTime
+  status      VisitationStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum VisitationStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
