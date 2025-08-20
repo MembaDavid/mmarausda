@@ -1,36 +1,35 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// Prisma Schema for SDA Church App
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
 }
-
 
 model User {
   id        String   @id @default(uuid())
   name      String
   email     String   @unique
-  phone     String?
-  role      Role
+  phone     String?  @unique
+  role      Role     @default(MEMBER)
   password  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
   offerings      Offering[]
-  events         Event[]        @relation("UserEvents")
+  events         Event[]        @relation("CreatedEvents")
   announcements  Announcement[]
   prayerRequests PrayerRequest[]
   visitations    Visitation[]
   memberProfile  Member?
+
+  @@index([email])
+  @@index([phone])
 }
 
 enum Role {
@@ -41,16 +40,17 @@ enum Role {
 }
 
 model Member {
-  id          String   @id @default(uuid())
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id])
+  id               String           @id @default(uuid())
+  userId           String           @unique
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  baptismDate DateTime?
+  baptismDate      DateTime?
   membershipStatus MembershipStatus @default(ACTIVE)
-  address     String?
-  dateOfBirth DateTime?
-  gender      Gender?
-  joinedAt    DateTime @default(now())
+  address          String?
+  dateOfBirth      DateTime?
+  gender           Gender?
+  joinedAt         DateTime @default(now())
+  deletedAt        DateTime?
 }
 
 enum MembershipStatus {
@@ -74,8 +74,10 @@ model Event {
   category         EventCategory
   registrationLink String?
 
-  createdBy String
-  creator   User     @relation("UserEvents", fields: [createdBy], references: [id])
+  createdById String
+  createdBy   User @relation("CreatedEvents", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([category])
 }
 
 enum EventCategory {
@@ -92,7 +94,7 @@ model Sermon {
   title       String
   preacher    String
   deliveredAt DateTime
-  mediaUrl    String
+  mediaUrl    String      // could later be a relation if multiple formats
   type        SermonType
   description String?
 }
@@ -109,20 +111,22 @@ model Announcement {
   body      String
   createdAt DateTime @default(now())
 
-  createdBy String
-  creator   User     @relation(fields: [createdBy], references: [id])
+  createdById String
+  createdBy   User @relation(fields: [createdById], references: [id], onDelete: Cascade)
 }
 
 model Offering {
   id            String           @id @default(uuid())
   userId        String
-  user          User             @relation(fields: [userId], references: [id])
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   category      OfferingCategory
   amount        Float
   paymentMethod String
-  transactionId String
+  transactionId String?
   date          DateTime @default(now())
+
+  @@index([category])
 }
 
 enum OfferingCategory {
@@ -136,7 +140,7 @@ enum OfferingCategory {
 model PrayerRequest {
   id        String   @id @default(uuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   request   String
   status    PrayerStatus @default(PENDING)
@@ -153,7 +157,7 @@ enum PrayerStatus {
 model Visitation {
   id          String   @id @default(uuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   purpose     String
   scheduledAt DateTime
