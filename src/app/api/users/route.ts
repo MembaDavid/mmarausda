@@ -12,7 +12,14 @@ export async function GET() {
         email: true,
         phone: true,
         role: true,
+        gender: true,
         createdAt: true,
+        offerings: true,       // 👈 just add relations here
+        events: true,
+        announcements: true,
+        prayerRequests: true,
+        visitations: true,
+        memberProfile: true,
       },
     });
 
@@ -27,7 +34,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, email, phone, role, password } = body;
+    const { name, email, phone, role, password, gender } = body;
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -41,7 +48,8 @@ export async function POST(req: Request) {
         name,
         email,
         phone,
-        role: role || "MEMBER",
+        role: role || "GUEST", // Default to GUEST if not provided
+        gender,
         password: hashedPassword,
       },
       select: {
@@ -50,6 +58,7 @@ export async function POST(req: Request) {
         email: true,
         phone: true,
         role: true,
+        gender: true,
         createdAt: true,
       },
     });

@@ -1,25 +1,71 @@
+// src/app/api/members/route.ts
 import { NextResponse } from "next/server";
-import prisma  from "@/lib/prisma";
+import prisma from "@/lib/prisma";
 
-// GET all members
+// GET all members with their User info
 export async function GET() {
-  const members = await prisma.member.findMany({
-    include: { user: true },
-  });
-  return NextResponse.json(members);
+  try {
+    const members = await prisma.member.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            role: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(members);
+  } catch (error) {
+    console.error("GET /api/members error:", error);
+    return NextResponse.json({ error: "Failed to fetch members" }, { status: 500 });
+  }
 }
 
-// CREATE a member
+// POST create a new member (assumes User already exists)
 export async function POST(req: Request) {
-  const data = await req.json();
-  const member = await prisma.member.create({
-    data: {
-      userId: data.userId,
-      baptismDate: data.baptismDate ? new Date(data.baptismDate) : null,
-      address: data.address,
-      dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
-      gender: data.gender,
-    },
-  });
-  return NextResponse.json(member);
+  try {
+    const body = await req.json();
+
+    const {
+      userId,
+      baptismDate,
+      membershipStatus,
+      address,
+      dateOfBirth,
+      graduationYear,
+    } = body;
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "userId is required" },
+        { status: 400 }
+      );
+    }
+
+    const newMember = await prisma.member.create({
+      data: {
+        userId,
+        baptismDate: baptismDate ? new Date(baptismDate) : undefined,
+        membershipStatus: membershipStatus || "ACTIVE",
+        address,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+        graduationYear: graduationYear ? new Date(graduationYear) : undefined,
+        
+      },
+      include: {
+        user: true, // return linked User info too
+      },
+    });
+
+    return NextResponse.json(newMember, { status: 201 });
+  } catch (error) {
+    console.error("POST /api/members error:", error);
+    return NextResponse.json({ error: "Failed to create member" }, { status: 500 });
+  }
 }

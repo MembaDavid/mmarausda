@@ -15,12 +15,13 @@ model User {
   name      String
   email     String   @unique
   phone     String?  @unique
-  role      Role     @default(MEMBER)
+  role      Role     @default(GUEST)
   password  String
   createdAt DateTime @default(now())
+  gender    Gender?
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
-
+  homeChurch String?
   offerings      Offering[]
   events         Event[]        @relation("CreatedEvents")
   announcements  Announcement[]
@@ -37,6 +38,9 @@ enum Role {
   EDITOR
   MEMBER
   GUEST
+  ASSOCIATE
+  TREASURER
+  CLERK
 }
 
 model Member {
@@ -47,9 +51,9 @@ model Member {
   baptismDate      DateTime?
   membershipStatus MembershipStatus @default(ACTIVE)
   address          String?
-  dateOfBirth      DateTime?
-  gender           Gender?
+  dateOfBirth      DateTime? 
   joinedAt         DateTime @default(now())
+  graduationYear    DateTime?
   deletedAt        DateTime?
 }
 
@@ -82,8 +86,8 @@ model Event {
 
 enum EventCategory {
   SABBATH
-  YOUTH
-  WOMEN
+  AMO
+  ALO
   BIBLE_STUDY
   SOCIAL
   GENERAL
@@ -135,6 +139,7 @@ enum OfferingCategory {
   CHURCH_BUDGET
   WELFARE
   MISSION
+  OTHER
 }
 
 model PrayerRequest {

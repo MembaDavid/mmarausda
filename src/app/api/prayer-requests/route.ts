@@ -1,23 +1,69 @@
 import { NextResponse } from "next/server";
-import  prisma  from "@/lib/prisma";
+import prisma from "@/lib/prisma";
 
-// GET all requests
+// ✅ GET all prayer requests
 export async function GET() {
-  const requests = await prisma.prayerRequest.findMany({
-    include: { user: true },
-    orderBy: { createdAt: "desc" },
-  });
-  return NextResponse.json(requests);
+  try {
+    const requests = await prisma.prayerRequest.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc", // newest first
+      },
+    });
+
+    return NextResponse.json(requests);
+  } catch (error) {
+    console.error("Error fetching prayer requests:", error);
+    return NextResponse.json({ error: "Failed to fetch prayer requests" }, { status: 500 });
+  }
 }
 
-// CREATE request
+// ✅ POST create a new prayer request
 export async function POST(req: Request) {
-  const data = await req.json();
-  const request = await prisma.prayerRequest.create({
-    data: {
-      userId: data.userId,
-      request: data.request,
-    },
-  });
-  return NextResponse.json(request);
+  try {
+    const body = await req.json();
+    const { userId, request, status } = body;
+
+    // Validation
+    if (!userId || !request) {
+      return NextResponse.json(
+        { error: "Missing required fields: userId or request" },
+        { status: 400 }
+      );
+    }
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Create prayer request
+    const newRequest = await prisma.prayerRequest.create({
+      data: {
+        userId,
+        request,
+        status: status || "PENDING",
+      },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true, phone: true },
+        },
+      },
+    });
+
+    return NextResponse.json(newRequest, { status: 201 });
+  } catch (error) {
+    console.error("Error creating prayer request:", error);
+    return NextResponse.json({ error: "Failed to create prayer request" }, { status: 500 });
+  }
 }
