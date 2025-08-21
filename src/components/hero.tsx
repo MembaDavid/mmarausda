@@ -1,30 +1,33 @@
-"use client"
+"use client";
 
-import * as motion from "motion/react-client"
-import { useScroll, useTransform, motion as m } from "framer-motion"
-import { useRef } from "react"
-import { Fredoka, Poppins, Pacifico } from "next/font/google"
+import * as motion from "motion/react-client";
+import { useScroll, useTransform, motion as m } from "framer-motion";
+import { useRef } from "react";
+import { Fredoka, Poppins, Pacifico } from "next/font/google";
 
-const headingFont = Fredoka({ subsets: ["latin"], weight: ["400", "700"] })
-const bodyFont = Poppins({ subsets: ["latin"], weight: ["400", "600"] })
-const eventFont = Pacifico({ subsets: ["latin"], weight: ["400"] })
+const headingFont = Fredoka({ subsets: ["latin"], weight: ["400", "700"] });
+const bodyFont = Poppins({ subsets: ["latin"], weight: ["400", "600"] });
+const eventFont = Pacifico({ subsets: ["latin"], weight: ["400"] });
 
 export default function Hero() {
-  const hymnRef = useRef(null)
+  const hymnRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: hymnRef,
     offset: ["start start", "end start"],
-  })
+  });
 
   // Scroll animations
-  const scaleVideo = useTransform(scrollYProgress, [0, 1], [1, 1.2]) // zoom in
-  const fadeOut = useTransform(scrollYProgress, [0, 1], [1, 0]) // fade hymn out
-  const moveUp = useTransform(scrollYProgress, [0, 1], ["0%", "-50%"]) // shift text
+  const scaleVideo = useTransform(scrollYProgress, [0, 1], [1, 1.2]); // zoom in
+  const fadeOut = useTransform(scrollYProgress, [0, 1], [1, 0]); // fade hymn out
+  const moveUp = useTransform(scrollYProgress, [0, 1], ["0%", "-50%"]); // shift text
 
   return (
     <main className="min-h-screen flex flex-col bg-blue-900 text-white relative overflow-hidden">
       {/* Loved Hymn Section with Scroll */}
-      <section ref={hymnRef} className="relative h-[70vh] w-full overflow-hidden">
+      <section
+        ref={hymnRef}
+        className="relative h-[70vh] w-full overflow-hidden"
+      >
         <m.video
           style={{ scale: scaleVideo }}
           className="absolute top-0 left-0 w-full h-full object-cover"
@@ -52,7 +55,8 @@ export default function Hero() {
             transition={{ delay: 0.3, duration: 1 }}
             className={`${bodyFont.className} mt-4 text-lg md:text-2xl text-white max-w-2xl`}
           >
-            "Blessed Assurance, Jesus is Mine! Oh, what a foretaste of glory divine..."
+            "Blessed Assurance, Jesus is Mine! Oh, what a foretaste of glory
+            divine..."
           </m.p>
           <m.a
             href="#"
@@ -105,7 +109,9 @@ export default function Hero() {
           >
             🌟 Upcoming Event 🌟
           </h2>
-          <p className={`${bodyFont.className} mt-4 text-lg md:text-xl text-white`}>
+          <p
+            className={`${bodyFont.className} mt-4 text-lg md:text-xl text-white`}
+          >
             **Campus Revival Week**
             <br />
             August 25th – 31st, 2025
@@ -117,5 +123,5 @@ export default function Hero() {
         </motion.div>
       </section>
     </main>
-  )
+  );
 }
