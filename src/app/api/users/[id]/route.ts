@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
 // GET a single user
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  req: Request,
+  context: { params: { id: string } }
+) {
   try {
     const user = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id: context.params.id },
       include: {
         memberProfile: true,
         offerings: true,
@@ -16,7 +19,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       },
     });
 
-    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
 
     return NextResponse.json(user);
   } catch (error) {
@@ -26,11 +31,14 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 }
 
 // PATCH update a user
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(
+  req: Request,
+  context: { params: { id: string } }
+) {
   try {
     const body = await req.json();
     const updatedUser = await prisma.user.update({
-      where: { id: params.id },
+      where: { id: context.params.id },
       data: body, // update only the fields sent
     });
 
@@ -42,9 +50,12 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 }
 
 // DELETE a user
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(
+  req: Request,
+  context: { params: { id: string } }
+) {
   try {
-    await prisma.user.delete({ where: { id: params.id } });
+    await prisma.user.delete({ where: { id: context.params.id } });
     return NextResponse.json({ message: "User deleted successfully" });
   } catch (error) {
     console.error("Error deleting user:", error);
