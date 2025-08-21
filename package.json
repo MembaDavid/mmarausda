@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
-    "prepare": "husky"
+    "prepare": "husky",
+     "test": "echo \"No tests yet\" && exit 0"
   },
   "dependencies": {
     "@prisma/client": "^6.14.0",
