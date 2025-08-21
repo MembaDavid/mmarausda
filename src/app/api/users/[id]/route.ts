@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 
 // GET a single user
 export async function GET(
-  req: Request,
-  context: { params: { id: string } }
+  req: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
     const user = await prisma.user.findUnique({
-      where: { id: context.params.id },
+      where: { id: params.id },
       include: {
         memberProfile: true,
         offerings: true,
@@ -32,14 +33,14 @@ export async function GET(
 
 // PATCH update a user
 export async function PATCH(
-  req: Request,
-  context: { params: { id: string } }
+  req: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
     const body = await req.json();
     const updatedUser = await prisma.user.update({
-      where: { id: context.params.id },
-      data: body, // update only the fields sent
+      where: { id: params.id },
+      data: body,
     });
 
     return NextResponse.json(updatedUser);
@@ -51,11 +52,11 @@ export async function PATCH(
 
 // DELETE a user
 export async function DELETE(
-  req: Request,
-  context: { params: { id: string } }
+  req: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
-    await prisma.user.delete({ where: { id: context.params.id } });
+    await prisma.user.delete({ where: { id: params.id } });
     return NextResponse.json({ message: "User deleted successfully" });
   } catch (error) {
     console.error("Error deleting user:", error);
