@@ -1,6 +1,19 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const PUBLIC_PATHS = [
+  '/login',
+  '/auth',
+  '/error',
+  '/register',
+  '/about',
+  '/contact',
+  // '/'
+];
+
+const PROHIBITED_PATHS = ["/admin", "/internal", "/secret", "/dashboard", "/profile", "/api"];
+
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -33,16 +46,23 @@ export async function updateSession(request: NextRequest) {
 
   // IMPORTANT: DO NOT REMOVE auth.getUser()
 
+   const { pathname } = request.nextUrl
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/auth') &&
-    !request.nextUrl.pathname.startsWith('/error')
-  ) {
+   
+
+//  if (PUBLIC_PATHS.includes(pathname)) {
+//     return NextResponse.next()
+//   }
+
+ const isPublicRoute = PUBLIC_PATHS.some((path) =>
+    request.nextUrl.pathname.startsWith(path)
+  );
+
+  if (!user && !isPublicRoute) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone()
     url.pathname = '/login'
@@ -61,6 +81,21 @@ export async function updateSession(request: NextRequest) {
   //    return myNewResponse
   // If this is not done, you may be causing the browser and server to go out
   // of sync and terminate the user's session prematurely!
+
+  // const isProtectedRoute = !PROHIBITED_PATHS.some((path) =>
+  //   request.nextUrl.pathname.startsWith(path)
+  // );
+
+  // if (isProtectedRoute) {
+  //   // // Option 1: Redirect to error page
+  //   // const url = request.nextUrl.clone()
+  //   // url.pathname = "/error"
+  //   // return NextResponse.redirect(url)
+
+  //   // Option 2: Block completely
+  //   return new NextResponse("Forbidden", { status: 403 })
+  // }
+
 
   return supabaseResponse
 }
