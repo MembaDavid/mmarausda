@@ -1,101 +1,101 @@
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = [
-  '/login',
-  '/auth',
-  '/error',
-  '/register',
-  '/about',
-  '/contact',
-  // '/'
-];
+/** Only gate these */
+const PROTECTED_PREFIXES = ["/api", "/admin"] as const;
+type ProtectedPrefix = (typeof PROTECTED_PREFIXES)[number];
 
-const PROHIBITED_PATHS = ["/admin", "/internal", "/secret", "/dashboard", "/profile", "/api"];
+/** App roles (exactly as you store them) */
+const ROLES = [
+  "ADMIN",
+  "EDITOR",
+  "MEMBER",
+  "GUEST",
+  "ASSOCIATE",
+  "TREASURER",
+  "CLERK",
+] as const;
+type Role = (typeof ROLES)[number];
 
+/** Who may access /api and /admin */
+const ALLOWED_SECURE_ROLES = new Set<Role>(["ADMIN", "EDITOR", "TREASURER", "CLERK"]);
+
+function getProtectedPrefix(pathname: string): ProtectedPrefix | null {
+  for (const p of PROTECTED_PREFIXES) if (pathname.startsWith(p)) return p;
+  return null;
+}
+
+function getUserRole(user: any): Role | undefined {
+  const raw =
+    (user?.app_metadata?.role as string | undefined) ??
+    (user?.user_metadata?.role as string | undefined);
+
+  if (!raw) return undefined;
+  const norm = String(raw).toUpperCase().trim();
+  return (ROLES as readonly string[]).includes(norm) ? (norm as Role) : undefined;
+}
 
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+  let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
+        getAll: () => request.cookies.getAll(),
+        setAll: (cookiesToSet) => {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
+            supabaseResponse.cookies.set(name, value, options),
+          );
         },
       },
-    }
-  )
-
-  // Do not run code between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
-
-  // IMPORTANT: DO NOT REMOVE auth.getUser()
-
-   const { pathname } = request.nextUrl
+    },
+  );
 
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
-   
+  const { pathname } = request.nextUrl;
 
-//  if (PUBLIC_PATHS.includes(pathname)) {
-//     return NextResponse.next()
-//   }
+  // Only gate /api and /admin
+  const matchedPrefix = getProtectedPrefix(pathname);
+  if (!matchedPrefix) return supabaseResponse;
 
- const isPublicRoute = PUBLIC_PATHS.some((path) =>
-    request.nextUrl.pathname.startsWith(path)
-  );
-
-  if (!user && !isPublicRoute) {
-    // no user, potentially respond by redirecting the user to the login page
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
+  // Require login
+  if (!user) {
+    const isApi = matchedPrefix === "/api";
+    if (isApi) {
+      return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
   }
 
-  // IMPORTANT: You *must* return the supabaseResponse object as it is.
-  // If you're creating a new response object with NextResponse.next() make sure to:
-  // 1. Pass the request in it, like so:
-  //    const myNewResponse = NextResponse.next({ request })
-  // 2. Copy over the cookies, like so:
-  //    myNewResponse.cookies.setAll(supabaseResponse.cookies.getAll())
-  // 3. Change the myNewResponse object to fit your needs, but avoid changing
-  //    the cookies!
-  // 4. Finally:
-  //    return myNewResponse
-  // If this is not done, you may be causing the browser and server to go out
-  // of sync and terminate the user's session prematurely!
+  // Require allowed role
+  const role = getUserRole(user);
+  const allowed = role ? ALLOWED_SECURE_ROLES.has(role) : false;
 
-  // const isProtectedRoute = !PROHIBITED_PATHS.some((path) =>
-  //   request.nextUrl.pathname.startsWith(path)
-  // );
+  if (!allowed) {
+    const isApi = matchedPrefix === "/api";
+    if (isApi) {
+      return new NextResponse(JSON.stringify({ error: "Forbidden: insufficient role" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return new NextResponse("Forbidden", { status: 403 });
+  }
 
-  // if (isProtectedRoute) {
-  //   // // Option 1: Redirect to error page
-  //   // const url = request.nextUrl.clone()
-  //   // url.pathname = "/error"
-  //   // return NextResponse.redirect(url)
-
-  //   // Option 2: Block completely
-  //   return new NextResponse("Forbidden", { status: 403 })
-  // }
-
-
-  return supabaseResponse
+  return supabaseResponse;
 }
+
+// Optional: run middleware on everything except static/_next
+// export const config = { matcher: ["/((?!_next|.*\\..*).*)"] };
