@@ -1,58 +1,190 @@
-// Prisma Schema for SDA Church App
+// Prisma Schema for SDA Church App (updated)
+// Key changes applied from your notes:
+// - Decimal money type for Offerings
+// - PaymentMethod enum (normalized)
+// - transactionId unique
+// - added updatedAt + published to content models
+// - graduationYear as Int
+// - helpful indexes
+// NOTE: Enforce Event.end > Event.start in application logic.
+// Prisma Schema for SDA Church App (updated + back-relation for Sermon.preacherRef)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
-  schemas   = ["public", "auth"]
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["public", "auth"]
 }
 
 /**
  * Minimal mapping to Supabase Auth table `auth.users`.
- * You can read email/phone, and display name from raw_user_meta_data JSON.
  */
 model AuthUser {
   id                 String  @id @db.Uuid()
   email              String? @db.Text
   phone              String? @db.Text
-  raw_user_meta_data Json?   @map("raw_user_meta_data") // contains full_name/name etc.
+  raw_user_meta_data Json?   @db.JsonB
 
-  // Back relation to app profile(s)
   profiles User[]
 
   @@map("users")
   @@schema("auth")
 }
 
+// ========================= App Models (public) =========================
+
 model User {
-  // Keep your app PK
-  id String @id @default(uuid()) @db.Uuid()
+  id          String   @id @default(uuid()) @db.Uuid()
 
   // Link to Supabase Auth (1:1)
-  authUserId String   @unique @db.Uuid()
-  authUser   AuthUser @relation(fields: [authUserId], references: [id], onDelete: Cascade)
+  authUserId  String   @unique @db.Uuid()
+  authUser    AuthUser @relation(fields: [authUserId], references: [id], onDelete: Cascade)
 
-  // App-specific fields (no identification here)
-  role       Role      @default(GUEST)
-  createdAt  DateTime  @default(now())
-  gender     Gender?
-  updatedAt  DateTime  @updatedAt
-  deletedAt  DateTime?
-  homeChurch String?
+  // App-specific fields
+  role        Role     @default(GUEST)
+  gender      Gender?
+  homeChurch  String?
 
-  offerings      Offering[]
-  events         Event[]         @relation("CreatedEvents")
-  announcements  Announcement[]
-  prayerRequests PrayerRequest[]
-  visitations    Visitation[]
-  memberProfile  Member?
+  // Relations
+  memberProfile   MemberProfile?
+  offerings       Offering[]
+  events          Event[]         @relation("CreatedEvents")
+  announcements   Announcement[]
+  prayerRequests  PrayerRequest[]
+  visitations     Visitation[]
+  sermonsPreached Sermon[]        // <— back-relation for Sermon.preacherRef
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
 
   @@schema("public")
 }
+
+model MemberProfile {
+  id               String           @id @default(uuid()) @db.Uuid()
+  userId           String           @unique @db.Uuid()
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  membershipStatus MembershipStatus @default(ACTIVE)
+  address          String?
+  dateOfBirth      DateTime?
+  joinedAt         DateTime         @default(now())
+  graduationYear   Int?
+  baptismDate      DateTime?
+  deletedAt        DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@schema("public")
+}
+
+model Event {
+  id               String        @id @default(uuid()) @db.Uuid()
+  title            String
+  description      String
+  category         EventCategory
+  start            DateTime
+  end              DateTime
+  registrationLink String?
+  published        Boolean       @default(true)
+
+  createdById String? @db.Uuid()
+  createdBy   User?   @relation("CreatedEvents", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([start])
+  @@index([createdAt])
+  @@schema("public")
+}
+
+model Sermon {
+  id          String   @id @default(uuid()) @db.Uuid()
+  title       String
+  preacher    String?  // free-text for guests
+  preacherId  String?  @db.Uuid()
+  preacherRef User?    @relation(fields: [preacherId], references: [id], onDelete: SetNull) // back-rel: User.sermonsPreached
+  deliveredAt DateTime
+  mediaUrl    String
+  type        SermonType
+  description String?
+  published   Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([deliveredAt])
+  @@index([createdAt])
+  @@schema("public")
+}
+
+model Announcement {
+  id          String   @id @default(uuid()) @db.Uuid()
+  title       String
+  body        String
+  published   Boolean  @default(true)
+  createdById String?  @db.Uuid()
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+  @@schema("public")
+}
+
+model Offering {
+  id            String           @id @default(uuid()) @db.Uuid()
+  userId        String           @db.Uuid()
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category      OfferingCategory
+  amount        Decimal          @db.Decimal(12, 2)
+  paymentMethod PaymentMethod
+  transactionId String?          @unique
+  date          DateTime         @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([date])
+  @@schema("public")
+}
+
+model PrayerRequest {
+  id        String       @id @default(uuid()) @db.Uuid()
+  userId    String       @db.Uuid()
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  request   String
+  status    PrayerStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@schema("public")
+}
+
+model Visitation {
+  id          String           @id @default(uuid()) @db.Uuid()
+  userId      String           @db.Uuid()
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose     String
+  scheduledAt DateTime
+  status      VisitationStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([scheduledAt])
+  @@schema("public")
+}
+
+// ========================= Enums =========================
 
 enum Role {
   ADMIN
@@ -62,22 +194,6 @@ enum Role {
   ASSOCIATE
   TREASURER
   CLERK
-
-  @@schema("public")
-}
-
-model Member {
-  id     String @id @default(uuid()) @db.Uuid()
-  userId String @unique @db.Uuid()
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  baptismDate      DateTime?
-  membershipStatus MembershipStatus @default(ACTIVE)
-  address          String?
-  dateOfBirth      DateTime?
-  joinedAt         DateTime         @default(now())
-  graduationYear   DateTime?
-  deletedAt        DateTime?
 
   @@schema("public")
 }
@@ -98,22 +214,6 @@ enum Gender {
   @@schema("public")
 }
 
-model Event {
-  id               String        @id @default(uuid()) @db.Uuid()
-  title            String
-  description      String
-  start            DateTime
-  end              DateTime
-  category         EventCategory
-  registrationLink String?
-
-  createdById String @db.Uuid()
-  createdBy   User   @relation("CreatedEvents", fields: [createdById], references: [id], onDelete: Cascade)
-
-  @@index([category])
-  @@schema("public")
-}
-
 enum EventCategory {
   SABBATH
   AMO
@@ -125,51 +225,12 @@ enum EventCategory {
   @@schema("public")
 }
 
-model Sermon {
-  id          String     @id @default(uuid()) @db.Uuid()
-  title       String
-  preacher    String
-  deliveredAt DateTime
-  mediaUrl    String
-  type        SermonType
-  description String?
-
-   @@schema("public")
-}
-
 enum SermonType {
   VIDEO
   AUDIO
   TEXT
 
-   @@schema("public")
-}
-
-model Announcement {
-  id        String   @id @default(uuid()) @db.Uuid()
-  title     String
-  body      String
-  createdAt DateTime @default(now())
-
-  createdById String @db.Uuid()
-  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
-
-   @@schema("public")
-}
-
-model Offering {
-  id     String @id @default(uuid()) @db.Uuid()
-  userId String @db.Uuid()
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  category      OfferingCategory
-  amount        Float
-  paymentMethod String
-  transactionId String?
-  date          DateTime         @default(now())
-
-  @@index([category])
-   @@schema("public")
+  @@schema("public")
 }
 
 enum OfferingCategory {
@@ -180,20 +241,17 @@ enum OfferingCategory {
   MISSION
   OTHER
 
-   @@schema("public")
+  @@schema("public")
 }
 
-model PrayerRequest {
-  id     String @id @default(uuid()) @db.Uuid()
-  userId String @db.Uuid()
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+enum PaymentMethod {
+  MPESA
+  CASH
+  CARD
+  BANK
+  OTHER
 
-  request   String
-  status    PrayerStatus @default(PENDING)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-
-   @@schema("public")
+  @@schema("public")
 }
 
 enum PrayerStatus {
@@ -201,21 +259,7 @@ enum PrayerStatus {
   IN_PROGRESS
   ANSWERED
 
-   @@schema("public")
-}
-
-model Visitation {
-  id     String @id @default(uuid()) @db.Uuid()
-  userId String @db.Uuid()
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  purpose     String
-  scheduledAt DateTime
-  status      VisitationStatus @default(PENDING)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-
-   @@schema("public")
+  @@schema("public")
 }
 
 enum VisitationStatus {
@@ -223,5 +267,239 @@ enum VisitationStatus {
   COMPLETED
   CANCELLED
 
-   @@schema("public")
+  @@schema("public")
 }
+
+
+
+
+
+
+
+// // Prisma Schema for SDA Church App
+
+// generator client {
+//   provider = "prisma-client-js"
+// }
+
+// datasource db {
+//   provider  = "postgresql"
+//   url       = env("DATABASE_URL")
+//   directUrl = env("DIRECT_URL")
+//   schemas   = ["public", "auth"]
+// }
+
+// /**
+//  * Minimal mapping to Supabase Auth table `auth.users`.
+//  * You can read email/phone, and display name from raw_user_meta_data JSON.
+//  */
+// model AuthUser {
+//   id                 String  @id @db.Uuid()
+//   email              String? @db.Text
+//   phone              String? @db.Text
+//   raw_user_meta_data Json?   @map("raw_user_meta_data") // contains full_name/name etc.
+
+//   // Back relation to app profile(s)
+//   profiles User[]
+
+//   @@map("users")
+//   @@schema("auth")
+// }
+
+// model User {
+//   // Keep your app PK
+//   id String @id @default(uuid()) @db.Uuid()
+
+//   // Link to Supabase Auth (1:1)
+//   authUserId String   @unique @db.Uuid()
+//   authUser   AuthUser @relation(fields: [authUserId], references: [id], onDelete: Cascade)
+
+//   // App-specific fields (no identification here)
+//   role       Role      @default(GUEST)
+//   createdAt  DateTime  @default(now())
+//   gender     Gender?
+//   updatedAt  DateTime  @updatedAt
+//   deletedAt  DateTime?
+//   homeChurch String?
+
+//   offerings      Offering[]
+//   events         Event[]         @relation("CreatedEvents")
+//   announcements  Announcement[]
+//   prayerRequests PrayerRequest[]
+//   visitations    Visitation[]
+//   memberProfile  Member?
+
+//   @@schema("public")
+// }
+
+// enum Role {
+//   ADMIN
+//   EDITOR
+//   MEMBER
+//   GUEST
+//   ASSOCIATE
+//   TREASURER
+//   CLERK
+
+//   @@schema("public")
+// }
+
+// model Member {
+//   id     String @id @default(uuid()) @db.Uuid()
+//   userId String @unique @db.Uuid()
+//   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   baptismDate      DateTime?
+//   membershipStatus MembershipStatus @default(ACTIVE)
+//   address          String?
+//   dateOfBirth      DateTime?
+//   joinedAt         DateTime         @default(now())
+//   graduationYear   DateTime?
+//   deletedAt        DateTime?
+
+//   @@schema("public")
+// }
+
+// enum MembershipStatus {
+//   ACTIVE
+//   INACTIVE
+//   TRANSFERRED
+//   DECEASED
+
+//   @@schema("public")
+// }
+
+// enum Gender {
+//   MALE
+//   FEMALE
+
+//   @@schema("public")
+// }
+
+// model Event {
+//   id               String        @id @default(uuid()) @db.Uuid()
+//   title            String
+//   description      String
+//   start            DateTime
+//   end              DateTime
+//   category         EventCategory
+//   registrationLink String?
+
+//   createdById String @db.Uuid()
+//   createdBy   User   @relation("CreatedEvents", fields: [createdById], references: [id], onDelete: Cascade)
+
+//   @@index([category])
+//   @@schema("public")
+// }
+
+// enum EventCategory {
+//   SABBATH
+//   AMO
+//   ALO
+//   BIBLE_STUDY
+//   SOCIAL
+//   GENERAL
+
+//   @@schema("public")
+// }
+
+// model Sermon {
+//   id          String     @id @default(uuid()) @db.Uuid()
+//   title       String
+//   preacher    String
+//   deliveredAt DateTime
+//   mediaUrl    String
+//   type        SermonType
+//   description String?
+
+//    @@schema("public")
+// }
+
+// enum SermonType {
+//   VIDEO
+//   AUDIO
+//   TEXT
+
+//    @@schema("public")
+// }
+
+// model Announcement {
+//   id        String   @id @default(uuid()) @db.Uuid()
+//   title     String
+//   body      String
+//   createdAt DateTime @default(now())
+
+//   createdById String @db.Uuid()
+//   createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+//    @@schema("public")
+// }
+
+// model Offering {
+//   id     String @id @default(uuid()) @db.Uuid()
+//   userId String @db.Uuid()
+//   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   category      OfferingCategory
+//   amount        Float
+//   paymentMethod String
+//   transactionId String?
+//   date          DateTime         @default(now())
+
+//   @@index([category])
+//    @@schema("public")
+// }
+
+// enum OfferingCategory {
+//   TITHE
+//   COMBINED_OFFERING
+//   CHURCH_BUDGET
+//   WELFARE
+//   MISSION
+//   OTHER
+
+//    @@schema("public")
+// }
+
+// model PrayerRequest {
+//   id     String @id @default(uuid()) @db.Uuid()
+//   userId String @db.Uuid()
+//   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   request   String
+//   status    PrayerStatus @default(PENDING)
+//   createdAt DateTime     @default(now())
+//   updatedAt DateTime     @updatedAt
+
+//    @@schema("public")
+// }
+
+// enum PrayerStatus {
+//   PENDING
+//   IN_PROGRESS
+//   ANSWERED
+
+//    @@schema("public")
+// }
+
+// model Visitation {
+//   id     String @id @default(uuid()) @db.Uuid()
+//   userId String @db.Uuid()
+//   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   purpose     String
+//   scheduledAt DateTime
+//   status      VisitationStatus @default(PENDING)
+//   createdAt   DateTime         @default(now())
+//   updatedAt   DateTime         @updatedAt
+
+//    @@schema("public")
+// }
+
+// enum VisitationStatus {
+//   PENDING
+//   COMPLETED
+//   CANCELLED
+
+//    @@schema("public")
+// }
