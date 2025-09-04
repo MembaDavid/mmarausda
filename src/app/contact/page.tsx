@@ -1,6 +1,7 @@
 "use client";
 
 import * as motion from "motion/react-client";
+import { cubicBezier } from "motion";
 import { useMemo, useState } from "react";
 import {
   FiMail,
@@ -62,7 +63,7 @@ export default function ContactPage() {
       show: {
         opacity: 1,
         y: 0,
-        transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+        transition: { duration: 0.5, ease: cubicBezier(0.22, 1, 0.36, 1) },
       },
     }),
     []
@@ -99,7 +100,10 @@ export default function ContactPage() {
               className="text-3xl font-bold tracking-tight md:text-5xl"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+              transition={{
+                duration: 0.7,
+                ease: cubicBezier(0.22, 1, 0.36, 1),
+              }}
             >
               Seventh-day Adventist
               <span className="block bg-gradient-to-r from-emerald-300 via-amber-200 to-teal-300 bg-clip-text text-transparent">
@@ -418,6 +422,8 @@ function Field({
   placeholder,
   autoComplete,
   className = "",
+  pattern,
+  title,
 }: {
   label: string;
   name: string;
@@ -425,6 +431,8 @@ function Field({
   placeholder?: string;
   autoComplete?: string;
   className?: string;
+  pattern?: string;
+  title?: string;
 }) {
   return (
     <label className={`block ${className}`}>
@@ -437,6 +445,8 @@ function Field({
         type={type}
         placeholder={placeholder}
         autoComplete={autoComplete}
+        pattern={pattern}
+        title={title}
         className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-slate-100 placeholder-slate-400 outline-none ring-0 transition focus:border-white/20 focus:bg-white/10 focus:ring-2 focus:ring-emerald-400/40"
       />
     </label>
