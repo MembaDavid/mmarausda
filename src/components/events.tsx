@@ -188,7 +188,7 @@ const categories: Array<EventItem["category"] | "All"> = [
 ];
 
 const heroGradient =
-  "bg-[radial-gradient(1200px_800px_at_50%_-10%,rgba(59,130,246,0.25),transparent_70%),radial-gradient(800px_400px_at_80%_10%,rgba(236,72,153,0.25),transparent_70%),radial-gradient(600px_400px_at_20%_0%,rgba(16,185,129,0.25),transparent_70%)]";
+  "bg-[radial-gradient(1200px_800px_at_50%_-10%,rgba(59,130,246,0.25),transparent_70%),radial-gradient(800px_400px_at_80%_10%,rgba(245,158,11,0.22),transparent_70%),radial-gradient(600px_400px_at_20%_0%,rgba(147,197,253,0.18),transparent_70%)]";
 
 const spring = { type: "spring", stiffness: 120, damping: 14 } as const;
 
@@ -256,7 +256,7 @@ export default function EventsPage({
           <motion.h1
             layout
             transition={spring}
-            className="text-4xl sm:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-fuchsia-400 to-emerald-300 drop-shadow"
+            className="text-4xl sm:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-sky-300 to-amber-300 drop-shadow"
           >
             Glorious Events
           </motion.h1>
@@ -279,15 +279,15 @@ export default function EventsPage({
             </label>
 
             {/* Categories */}
-            <div className="flex flex-nowrap gap-2 overflow-auto sm:overflow-visible">
+            <div className="flex gap-2 overflow-x-auto sm:overflow-visible flex-nowrap sm:flex-wrap items-center content-start py-1">
               {categories.map((c) => (
                 <motion.button
                   whileTap={{ scale: 0.98 }}
                   key={c}
                   onClick={() => setActiveCat(c)}
-                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm whitespace-nowrap border ${
+                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm whitespace-nowrap shrink-0 border ${
                     activeCat === c
-                      ? "bg-emerald-500/15 border-emerald-400/40"
+                      ? "bg-amber-500/15 border-amber-400/40 text-amber-200"
                       : "bg-white/5 border-white/10 hover:bg-white/10"
                   } transition`}
                   aria-pressed={activeCat === c}
@@ -349,7 +349,7 @@ export default function EventsPage({
         />
         <motion.div
           aria-hidden
-          className="pointer-events-none absolute -bottom-20 left-10 h-72 w-72 rounded-full bg-fuchsia-500/20 blur-3xl"
+          className="pointer-events-none absolute -bottom-20 left-10 h-72 w-72 rounded-full bg-amber-400/25 blur-3xl"
           animate={{ x: [0, 12, -12, 0], y: [0, -8, 8, 0] }}
           transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
         />
@@ -456,7 +456,7 @@ function EventCard({ e }: { e: EventItem }) {
           </button>
           <a
             href={`#/events/${e.id}`}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-emerald-500/15 px-3 py-2 text-sm text-emerald-300 hover:bg-emerald-500/20"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-amber-500/15 px-3 py-2 text-sm text-amber-300 hover:bg-amber-500/20"
           >
             <FiClock /> Details
           </a>
