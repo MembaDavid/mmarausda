@@ -3,14 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import {
-  FaHerald as FaBookBible,,
-  FaUsers,
-  FaHeart,
-  FaVideo,
-  FaGift,
-  FaFileAlt,
-} from "react-icons/fa";
+import { FaUsers, FaHeart, FaVideo, FaGift, FaFileAlt } from "react-icons/fa";
 
 const resources = [
   {
@@ -25,7 +18,7 @@ const resources = [
   },
   {
     category: "Bible Study",
-    icon: FaBookBible,
+    icon: FaGift,
     items: [
       { title: "Weekly Bible Study", url: "/bible-study/weekly" },
       { title: "Study Guides", url: "/bible-study/guides" },
@@ -137,7 +130,9 @@ export default function ResourcesPage() {
                       className="group flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors"
                     >
                       <span className="h-1.5 w-1.5 rounded-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-all"></span>
-                      <span className="group-hover:underline">{item.title}</span>
+                      <span className="group-hover:underline">
+                        {item.title}
+                      </span>
                     </Link>
                   </li>
                 ))}
