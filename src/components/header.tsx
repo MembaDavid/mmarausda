@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as motion from "motion/react-client";
@@ -27,12 +27,21 @@ export default function Header() {
       sub: [
         { label: "Sermons", href: "/resources/sermons" },
         { label: "Hymns", href: "/resources/hymns" },
-        { label: "Bible Study", href: "/resources/bible-study" },
+        { label: "Bible Study", href: "/resources/bible_studies" },
       ],
     },
     { label: "About", href: "/about" },
     { label: "Contact", href: "/contact" },
   ];
+
+  const closeTimer = useRef<number | null>(null);
+  const openMenu = (label: string) => {
+    if (closeTimer.current) window.clearTimeout(closeTimer.current);
+    setOpenDropdown(label);
+  };
+  const scheduleClose = () => {
+    closeTimer.current = window.setTimeout(() => setOpenDropdown(null), 130);
+  };
 
   useEffect(() => {
     const onScroll = () => setElevated(window.scrollY > 8);
@@ -97,9 +106,15 @@ export default function Header() {
               return (
                 <div
                   key={item.label}
-                  className="relative"
-                  onMouseEnter={() => hasSub && setOpenDropdown(item.label)}
-                  onMouseLeave={() => hasSub && setOpenDropdown(null)}
+                  className={[
+                    "relative group pb-3", // space for the dropdown to overlap
+                    // invisible hover-bridge right under the trigger
+                    "before:content-[''] before:absolute before:left-0 before:top-full before:h-3 before:w-full",
+                  ].join(" ")}
+                  onMouseEnter={() =>
+                    hasSub ? openMenu(item.label) : undefined
+                  }
+                  onMouseLeave={() => (hasSub ? scheduleClose() : undefined)}
                 >
                   <Link
                     href={item.href}
@@ -107,9 +122,10 @@ export default function Header() {
                       "relative px-1 text-sm tracking-wide text-white/85 transition-colors",
                       active ? "text-yellow-300" : "hover:text-yellow-300",
                     ].join(" ")}
+                    onFocus={() => hasSub && openMenu(item.label)}
+                    onBlur={() => hasSub && scheduleClose()}
                   >
                     {item.label}
-                    {/* underline animation */}
                     <motion.span
                       className="absolute -bottom-1 left-0 right-0 h-[2px]"
                       initial={false}
@@ -130,15 +146,17 @@ export default function Header() {
                   {hasSub && openDropdown === item.label && (
                     <motion.div
                       key="dropdown"
-                      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                      initial={{ opacity: 0, y: 6, scale: 0.99 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                      exit={{ opacity: 0, y: 6, scale: 0.99 }}
                       transition={{
                         type: "spring",
                         stiffness: 260,
                         damping: 22,
                       }}
-                      className="absolute left-0 mt-3 w-64 overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/95 p-2 backdrop-blur-xl shadow-2xl"
+                      className="absolute left-0 top-full z-50 w-64 overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/95 p-2 backdrop-blur-xl shadow-2xl"
+                      onMouseEnter={() => openMenu(item.label)} // keep open while hovering panel
+                      onMouseLeave={scheduleClose} // small delay to prevent flicker
                       role="menu"
                       aria-label={item.label}
                     >
