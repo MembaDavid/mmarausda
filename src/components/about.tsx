@@ -24,7 +24,13 @@ export default function AboutPage() {
             className="flex flex-col items-center text-center"
           >
             <div className="mb-8 rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
-              <Image src="/sda_logo.svg" alt="Church logo" width={84} height={84} priority />
+              <Image
+                src="/sda_logo.svg"
+                alt="Church logo"
+                width={84}
+                height={84}
+                priority
+              />
             </div>
             <h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">
               Seventh-day Adventist Church
@@ -80,7 +86,10 @@ export default function AboutPage() {
                 transition={{ duration: 0.4, delay: i * 0.06 }}
                 className="group rounded-2xl border border-white/10 bg-white/5 p-6 shadow-lg ring-1 ring-inset ring-white/5"
               >
-                <div className="mb-3 h-1 w-12 rounded-full" style={{ background: ACCENT }} />
+                <div
+                  className="mb-3 h-1 w-12 rounded-full"
+                  style={{ background: ACCENT }}
+                />
                 <h3 className="text-lg font-semibold">{v.title}</h3>
                 <p className="mt-2 text-sm text-white/80">{v.body}</p>
               </motion.div>
@@ -106,8 +115,15 @@ export default function AboutPage() {
             <div className="absolute left-4 top-0 h-full w-0.5 bg-white/15 sm:left-1/2 sm:-translate-x-1/2" />
             <ul className="space-y-10">
               {TIMELINE.map((node, idx) => (
-                <li key={idx} className="relative sm:grid sm:grid-cols-2 sm:items-start sm:gap-8">
-                  <div className={`sm:text-right ${idx % 2 ? "sm:col-start-2" : ""}`}>
+                <li
+                  key={idx}
+                  className="relative sm:grid sm:grid-cols-2 sm:items-start sm:gap-8"
+                >
+                  <div
+                    className={`sm:text-right ${
+                      idx % 2 ? "sm:col-start-2" : ""
+                    }`}
+                  >
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       whileInView={{ opacity: 1, y: 0 }}
@@ -216,11 +232,14 @@ export default function AboutPage() {
           >
             <h3 className="text-2xl font-semibold">Join Us This Sabbath</h3>
             <p className="mx-auto mt-2 max-w-2xl text-white/80">
-              You are welcome to worship with us, join a small group, or serve with one of our ministries.
+              You are welcome to worship with us, join a small group, or serve
+              with one of our ministries.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-4">
               <CTA href="/events">See Events</CTA>
-              <CTA href="/contact" variant="outline">Contact Us</CTA>
+              <CTA href="/contact" variant="outline">
+                Contact Us
+              </CTA>
             </div>
           </motion.div>
         </div>
@@ -240,8 +259,17 @@ function Pill({ children }: { children: React.ReactNode }) {
   );
 }
 
-function CTA({ href, children, variant = "solid" }: { href: string; children: React.ReactNode; variant?: "solid" | "outline" }) {
-  const base = "inline-flex items-center justify-center rounded-xl px-5 py-2 text-sm font-medium transition";
+function CTA({
+  href,
+  children,
+  variant = "solid",
+}: {
+  href: string;
+  children: React.ReactNode;
+  variant?: "solid" | "outline";
+}) {
+  const base =
+    "inline-flex items-center justify-center rounded-xl px-5 py-2 text-sm font-medium transition";
   if (variant === "outline")
     return (
       <Link
@@ -254,10 +282,7 @@ function CTA({ href, children, variant = "solid" }: { href: string; children: Re
   return (
     <Link
       href={href}
-      className={
-        `${base} text-[#0B1A33] hover:brightness-110` +
-        ""
-      }
+      className={`${base} text-[#0B1A33] hover:brightness-110` + ""}
       style={{ background: ACCENT }}
     >
       {children}
@@ -265,7 +290,15 @@ function CTA({ href, children, variant = "solid" }: { href: string; children: Re
   );
 }
 
-function InfoCard({ title, subtitle, description }: { title: string; subtitle: string; description: string }) {
+function InfoCard({
+  title,
+  subtitle,
+  description,
+}: {
+  title: string;
+  subtitle: string;
+  description: string;
+}) {
   return (
     <motion.article
       initial={{ opacity: 0, y: 20 }}
@@ -274,7 +307,9 @@ function InfoCard({ title, subtitle, description }: { title: string; subtitle: s
       transition={{ duration: 0.5 }}
       className="rounded-2xl border border-white/10 bg-white/5 p-6 ring-1 ring-white/10"
     >
-      <p className="text-xs uppercase tracking-wider text-white/60">{subtitle}</p>
+      <p className="text-xs uppercase tracking-wider text-white/60">
+        {subtitle}
+      </p>
       <h3 className="mt-1 text-xl font-semibold">{title}</h3>
       <p className="mt-2 text-white/80">{description}</p>
     </motion.article>
@@ -283,8 +318,14 @@ function InfoCard({ title, subtitle, description }: { title: string; subtitle: s
 
 function BackgroundOrbs() {
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-      <div className="absolute -left-16 -top-16 h-72 w-72 rounded-full blur-3xl opacity-20" style={{ background: ACCENT }} />
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+    >
+      <div
+        className="absolute -left-16 -top-16 h-72 w-72 rounded-full blur-3xl opacity-20"
+        style={{ background: ACCENT }}
+      />
       <div className="absolute -right-24 top-1/4 h-96 w-96 rounded-full bg-blue-400/20 blur-3xl" />
       <div className="absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-cyan-300/10 blur-3xl" />
     </div>
@@ -296,18 +337,49 @@ const VALUES = [
     title: "Biblical Truth",
     body: "We anchor our faith and practice in the Scriptures as the living Word of God.",
   },
-  { title: "Prayer", body: "We seek God’s presence and power through personal and corporate prayer." },
-  { title: "Worship", body: "We honor God with reverence, joy, and excellence in all we do." },
-  { title: "Community", body: "We belong together — caring, encouraging, and growing as a family of believers." },
-  { title: "Service", body: "We follow Jesus by serving our neighbors with compassion and humility." },
-  { title: "Mission", body: "We share the hope of the gospel locally and globally until His return." },
+  {
+    title: "Prayer",
+    body: "We seek God’s presence and power through personal and corporate prayer.",
+  },
+  {
+    title: "Worship",
+    body: "We honor God with reverence, joy, and excellence in all we do.",
+  },
+  {
+    title: "Community",
+    body: "We belong together — caring, encouraging, and growing as a family of believers.",
+  },
+  {
+    title: "Service",
+    body: "We follow Jesus by serving our neighbors with compassion and humility.",
+  },
+  {
+    title: "Mission",
+    body: "We share the hope of the gospel locally and globally until His return.",
+  },
 ];
 
 const TIMELINE = [
-  { year: "19xx", title: "Humble Beginnings", text: "A small group of believers began meeting in homes to worship and study together." },
-  { year: "2005", title: "A Place to Call Home", text: "By God’s grace the congregation acquired land and built our first sanctuary." },
-  { year: "2016", title: "Growing in Ministry", text: "We launched youth, music, family, and community service ministries." },
-  { year: "Today", title: "Serving Our City", text: "We continue to disciple, equip, and reach our community with Christ’s love." },
+  {
+    year: "19xx",
+    title: "Humble Beginnings",
+    text: "A small group of believers began meeting in homes to worship and study together.",
+  },
+  {
+    year: "2005",
+    title: "A Place to Call Home",
+    text: "By God’s grace the congregation acquired land and built our first sanctuary.",
+  },
+  {
+    year: "2016",
+    title: "Growing in Ministry",
+    text: "We launched youth, music, family, and community service ministries.",
+  },
+  {
+    year: "Today",
+    title: "Serving Our City",
+    text: "We continue to disciple, equip, and reach our community with Christ’s love.",
+  },
 ];
 
 const LEADERS = [
@@ -315,27 +387,48 @@ const LEADERS = [
     name: "Pr. John Doe",
     role: "Senior Pastor",
     bio: "Passionate about discipleship, family ministry, and preaching the Word.",
-    photo: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?q=80&w=200&auto=format&fit=crop",
+    photo:
+      "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?q=80&w=200&auto=format&fit=crop",
   },
   {
     name: "Jane Smith",
     role: "Head Elder",
     bio: "Leads small groups and spiritual nurture with a heart for prayer.",
-    photo: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop",
+    photo:
+      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop",
   },
   {
     name: "Daniel Kim",
     role: "Youth Leader",
     bio: "Equipping the next generation to know Jesus and serve boldly.",
-    photo: "https://images.unsplash.com/photo-1527980965255-d3b416303d12?q=80&w=200&auto=format&fit=crop",
+    photo:
+      "https://images.unsplash.com/photo-1527980965255-d3b416303d12?q=80&w=200&auto=format&fit=crop",
   },
 ];
 
 const MINISTRIES = [
-  { title: "Children & Adventurers", body: "Building a strong faith foundation through Bible stories, crafts, and fun." },
-  { title: "Pathfinders", body: "Training young people for service, leadership, and outdoor skills." },
-  { title: "Music Ministry", body: "Leading worship in hymns and contemporary praise to glorify God." },
-  { title: "Family Life", body: "Supporting healthy homes through seminars, counseling, and fellowship." },
-  { title: "Community Service", body: "Food drives, visitations, and practical acts of kindness in our neighborhood." },
-  { title: "Media & Tech", body: "Spreading the message through livestreams, audio, and digital outreach." },
+  {
+    title: "Children & Adventurers",
+    body: "Building a strong faith foundation through Bible stories, crafts, and fun.",
+  },
+  {
+    title: "Pathfinders",
+    body: "Training young people for service, leadership, and outdoor skills.",
+  },
+  {
+    title: "Music Ministry",
+    body: "Leading worship in hymns and contemporary praise to glorify God.",
+  },
+  {
+    title: "Family Life",
+    body: "Supporting healthy homes through seminars, counseling, and fellowship.",
+  },
+  {
+    title: "Community Service",
+    body: "Food drives, visitations, and practical acts of kindness in our neighborhood.",
+  },
+  {
+    title: "Media & Tech",
+    body: "Spreading the message through livestreams, audio, and digital outreach.",
+  },
 ];
