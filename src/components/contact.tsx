@@ -14,6 +14,10 @@ import {
   FiCalendar,
 } from "react-icons/fi";
 
+// Motion v11-friendly easing tuples
+const EASE = [0.22, 1, 0.36, 1] as const;
+const LINEAR = [0, 0, 1, 1] as const;
+
 export default function ContactPage() {
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
     "idle"
@@ -59,11 +63,7 @@ export default function ContactPage() {
   const item = useMemo(
     () => ({
       hidden: { opacity: 0, y: 16 },
-      show: {
-        opacity: 1,
-        y: 0,
-        transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
-      },
+      show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } },
     }),
     []
   );
@@ -99,7 +99,7 @@ export default function ContactPage() {
               className="text-3xl font-bold tracking-tight md:text-5xl"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.7, ease: EASE }}
             >
               Seventh-day Adventist
               <span className="block bg-gradient-to-r from-blue-300 via-amber-200 to-blue-300 bg-clip-text text-transparent">
@@ -546,11 +546,7 @@ function Spinner() {
     <motion.span
       className="inline-block h-5 w-5"
       animate={{ rotate: 360 }}
-      transition={{
-        repeat: Infinity,
-        duration: 1,
-        ease: "linear" as unknown as number[],
-      }}
+      transition={{ repeat: Infinity, duration: 1, ease: LINEAR }}
     >
       <svg viewBox="0 0 24 24" className="h-5 w-5">
         <circle
