@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+"use client";
 
-("use client");
+import React, { useState } from "react";
 
 const randomNames = [
   "Alice",
