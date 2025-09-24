@@ -18,7 +18,12 @@ const ROLES = [
 type Role = (typeof ROLES)[number];
 
 /** Who may access /api and /admin */
-const ALLOWED_SECURE_ROLES = new Set<Role>(["ADMIN", "EDITOR", "TREASURER", "CLERK"]);
+const ALLOWED_SECURE_ROLES = new Set<Role>([
+  "ADMIN",
+  "EDITOR",
+  "TREASURER",
+  "CLERK",
+]);
 
 function getProtectedPrefix(pathname: string): ProtectedPrefix | null {
   for (const p of PROTECTED_PREFIXES) if (pathname.startsWith(p)) return p;
@@ -32,7 +37,9 @@ function getUserRole(user: any): Role | undefined {
 
   if (!raw) return undefined;
   const norm = String(raw).toUpperCase().trim();
-  return (ROLES as readonly string[]).includes(norm) ? (norm as Role) : undefined;
+  return (ROLES as readonly string[]).includes(norm)
+    ? (norm as Role)
+    : undefined;
 }
 
 export async function updateSession(request: NextRequest) {
@@ -45,14 +52,16 @@ export async function updateSession(request: NextRequest) {
       cookies: {
         getAll: () => request.cookies.getAll(),
         setAll: (cookiesToSet) => {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
           supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options),
+            supabaseResponse.cookies.set(name, value, options)
           );
         },
       },
-    },
+    }
   );
 
   const {
@@ -75,7 +84,7 @@ export async function updateSession(request: NextRequest) {
       });
     }
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = "auth/login";
     return NextResponse.redirect(url);
   }
 
@@ -86,10 +95,13 @@ export async function updateSession(request: NextRequest) {
   if (!allowed) {
     const isApi = matchedPrefix === "/api";
     if (isApi) {
-      return new NextResponse(JSON.stringify({ error: "Forbidden: insufficient role" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new NextResponse(
+        JSON.stringify({ error: "Forbidden: insufficient role" }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
     return new NextResponse("Forbidden", { status: 403 });
   }
