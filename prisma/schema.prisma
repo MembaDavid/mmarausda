@@ -8,45 +8,31 @@
 // - helpful indexes
 // NOTE: Enforce Event.end > Event.start in application logic.
 // Prisma Schema for SDA Church App (updated + back-relation for Sermon.preacherRef)
+// Prisma Schema for SDA Church App (fixed to avoid touching `auth`)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  schemas  = ["public", "auth"]
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")        // use ?schema=public
+  directUrl  = env("DIRECT_DATABASE_URL")          // 5432, non-pooled; name can match your .env
+  schemas    = ["public"]                 // ✅ remove "auth"
 }
 
-/**
- * Minimal mapping to Supabase Auth table `auth.users`.
- */
-model AuthUser {
-  id                 String  @id @db.Uuid()
-  email              String? @db.Text
-  phone              String? @db.Text
-  raw_user_meta_data Json?   @db.JsonB
-
-  profiles User[]
-
-  @@map("users")
-  @@schema("auth")
-}
-
-// ========================= App Models (public) =========================
+/* ========================= App Models (public) ========================= */
 
 model User {
-  id          String   @id @default(uuid()) @db.Uuid()
+  id             String   @id @default(uuid()) @db.Uuid()
 
-  // Link to Supabase Auth (1:1)
-  authUserId  String   @unique @db.Uuid()
-  authUser    AuthUser @relation(fields: [authUserId], references: [id], onDelete: Cascade)
+  // Link to Supabase Auth (store UUID only; no Prisma relation to `auth.users`)
+  authUserId     String   @unique @db.Uuid()
 
   // App-specific fields
-  role        Role     @default(GUEST)
-  gender      Gender?
-  homeChurch  String?
+  role           Role     @default(GUEST)
+  gender         Gender?
+  homeChurch     String?
 
   // Relations
   memberProfile   MemberProfile?
@@ -55,12 +41,13 @@ model User {
   announcements   Announcement[]
   prayerRequests  PrayerRequest[]
   visitations     Visitation[]
-  sermonsPreached Sermon[]        // <— back-relation for Sermon.preacherRef
+  sermonsPreached Sermon[]        // back-rel for Sermon.preacherRef
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   deletedAt   DateTime?
 
+  @@index([authUserId])
   @@schema("public")
 }
 
@@ -184,7 +171,7 @@ model Visitation {
   @@schema("public")
 }
 
-// ========================= Enums =========================
+/* ========================= Enums ========================= */
 
 enum Role {
   ADMIN
@@ -270,5 +257,3 @@ enum VisitationStatus {
 
   @@schema("public")
 }
-
-// ========================= End of File =========================
