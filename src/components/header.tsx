@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as motion from "motion/react-client";
 import Image from "next/image";
+import { supabaseBrowser } from "@/utils/supabase/client"; // <-- browser client
 
 type NavItem = {
   label: string;
@@ -12,11 +13,64 @@ type NavItem = {
   sub?: { label: string; href: string }[];
 };
 
+const ADMIN_ROLES = new Set(["ADMIN", "EDITOR", "TREASURER", "CLERK"]);
+
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [elevated, setElevated] = useState(false);
+
+  // auth state
+  const [authed, setAuthed] = useState(false);
+  const [email, setEmail] = useState<string | null>(null);
+  const [role, setRole] = useState<string>("GUEST");
+
   const pathname = usePathname();
+
+  // --- load auth state from supabase on mount + listen for changes
+  useEffect(() => {
+    const s = supabaseBrowser();
+    s.auth.getUser().then(({ data }) => {
+      const u = data.user;
+      setAuthed(!!u);
+      setEmail(u?.email ?? null);
+      const r =
+        (u?.user_metadata as any)?.role ??
+        (u?.app_metadata as any)?.role ??
+        "GUEST";
+      setRole(String(r || "GUEST").toUpperCase());
+    });
+    const {
+      data: { subscription },
+    } = s.auth.onAuthStateChange((_event, session) => {
+      const u = session?.user ?? null;
+      setAuthed(!!u);
+      setEmail(u?.email ?? null);
+      const r =
+        (u?.user_metadata as any)?.role ??
+        (u?.app_metadata as any)?.role ??
+        "GUEST";
+      setRole(String(r || "GUEST").toUpperCase());
+    });
+    return () => subscription?.unsubscribe();
+  }, []);
+
+  // --- existing hover timer for Resources dropdown
+  const closeTimer = useRef<number | null>(null);
+  const openMenu = (label: string) => {
+    if (closeTimer.current) window.clearTimeout(closeTimer.current);
+    setOpenDropdown(label);
+  };
+  const scheduleClose = () => {
+    closeTimer.current = window.setTimeout(() => setOpenDropdown(null), 130);
+  };
+
+  useEffect(() => {
+    const onScroll = () => setElevated(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const navItems: NavItem[] = [
     { label: "Home", href: "/" },
@@ -34,21 +88,17 @@ export default function Header() {
     { label: "Contact", href: "/contact" },
   ];
 
-  const closeTimer = useRef<number | null>(null);
-  const openMenu = (label: string) => {
-    if (closeTimer.current) window.clearTimeout(closeTimer.current);
-    setOpenDropdown(label);
-  };
-  const scheduleClose = () => {
-    closeTimer.current = window.setTimeout(() => setOpenDropdown(null), 130);
-  };
+  // small avatar/initials from email
+  const initials =
+    email?.trim().slice(0, 1).toUpperCase() || role.slice(0, 1) || "U";
 
-  useEffect(() => {
-    const onScroll = () => setElevated(window.scrollY > 8);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  // client-side sign out (clears sb cookies and reloads)
+  const signOut = async () => {
+    const s = supabaseBrowser();
+    await s.auth.signOut();
+    // Prefer a soft refresh to re-render header quickly
+    window.location.assign("/auth/login");
+  };
 
   return (
     <header
@@ -71,7 +121,6 @@ export default function Header() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           {/* Brand */}
           <Link href="/" className="group flex items-center gap-3">
-            {/* Logo from public folder */}
             <motion.div
               whileHover={{ scale: 1.05 }}
               transition={{ type: "spring", stiffness: 300, damping: 18 }}
@@ -107,8 +156,7 @@ export default function Header() {
                 <div
                   key={item.label}
                   className={[
-                    "relative group pb-3", // space for the dropdown to overlap
-                    // invisible hover-bridge right under the trigger
+                    "relative group pb-3",
                     "before:content-[''] before:absolute before:left-0 before:top-full before:h-3 before:w-full",
                   ].join(" ")}
                   onMouseEnter={() =>
@@ -155,8 +203,8 @@ export default function Header() {
                         damping: 22,
                       }}
                       className="absolute left-0 top-full z-50 w-64 overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/95 p-2 backdrop-blur-xl shadow-2xl"
-                      onMouseEnter={() => openMenu(item.label)} // keep open while hovering panel
-                      onMouseLeave={scheduleClose} // small delay to prevent flicker
+                      onMouseEnter={() => openMenu(item.label)}
+                      onMouseLeave={scheduleClose}
                       role="menu"
                       aria-label={item.label}
                     >
@@ -183,6 +231,70 @@ export default function Header() {
                 </div>
               );
             })}
+
+            {/* RIGHT SIDE (desktop): auth-aware */}
+            {!authed ? (
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/auth/login"
+                  className="rounded-xl px-3 py-2 text-sm text-white/90 ring-1 ring-white/15 hover:bg-white/5"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/auth/register"
+                  className="rounded-xl px-3 py-2 text-sm text-black bg-yellow-300 hover:bg-yellow-400"
+                >
+                  Register
+                </Link>
+              </div>
+            ) : (
+              <div className="relative">
+                <details className="group">
+                  <summary className="list-none flex items-center gap-2 cursor-pointer">
+                    <span className="rounded-full w-8 h-8 grid place-items-center bg-white/15 text-white">
+                      {initials}
+                    </span>
+                    <span className="hidden lg:inline text-sm text-white/85">
+                      {email}
+                    </span>
+                    <span className="ml-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/80 uppercase tracking-wide">
+                      {role}
+                    </span>
+                  </summary>
+                  <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/95 backdrop-blur-xl shadow-2xl">
+                    <div className="p-2">
+                      <Link
+                        href="/onboarding"
+                        className="block rounded-xl px-3 py-2 text-sm text-white/90 hover:bg-white/5"
+                      >
+                        Onboarding
+                      </Link>
+                      <Link
+                        href="/account"
+                        className="block rounded-xl px-3 py-2 text-sm text-white/90 hover:bg-white/5"
+                      >
+                        Account
+                      </Link>
+                      {ADMIN_ROLES.has(role) && (
+                        <Link
+                          href="/admin"
+                          className="block rounded-xl px-3 py-2 text-sm text-amber-300 hover:bg-white/5"
+                        >
+                          Admin
+                        </Link>
+                      )}
+                      <button
+                        onClick={signOut}
+                        className="mt-1 w-full text-left rounded-xl px-3 py-2 text-sm text-white/90 hover:bg-white/5"
+                      >
+                        Sign out
+                      </button>
+                    </div>
+                  </div>
+                </details>
+              </div>
+            )}
           </nav>
 
           {/* Mobile toggle */}
@@ -244,6 +356,61 @@ export default function Header() {
               ) : null}
             </div>
           ))}
+
+          {/* Auth area (mobile) */}
+          {!authed ? (
+            <div className="mt-2 flex gap-2">
+              <Link
+                href="/auth/login"
+                onClick={() => setMobileOpen(false)}
+                className="flex-1 text-center rounded-xl px-3 py-2 text-white/90 ring-1 ring-white/15"
+              >
+                Login
+              </Link>
+              <Link
+                href="/auth/register"
+                onClick={() => setMobileOpen(false)}
+                className="flex-1 text-center rounded-xl px-3 py-2 text-black bg-yellow-300"
+              >
+                Register
+              </Link>
+            </div>
+          ) : (
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <Link
+                href="/onboarding"
+                onClick={() => setMobileOpen(false)}
+                className="rounded-xl px-3 py-2 text-center text-white/90 ring-1 ring-white/10"
+              >
+                Onboarding
+              </Link>
+              <Link
+                href="/account"
+                onClick={() => setMobileOpen(false)}
+                className="rounded-xl px-3 py-2 text-center text-white/90 ring-1 ring-white/10"
+              >
+                Account
+              </Link>
+              {ADMIN_ROLES.has(role) && (
+                <Link
+                  href="/admin"
+                  onClick={() => setMobileOpen(false)}
+                  className="col-span-2 rounded-xl px-3 py-2 text-center text-amber-300 ring-1 ring-white/10"
+                >
+                  Admin
+                </Link>
+              )}
+              <button
+                onClick={() => {
+                  setMobileOpen(false);
+                  void signOut();
+                }}
+                className="col-span-2 rounded-xl px-3 py-2 text-center text-white/90 ring-1 ring-white/10"
+              >
+                Sign out
+              </button>
+            </div>
+          )}
         </div>
       </motion.div>
     </header>
