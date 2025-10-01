@@ -1,113 +1,88 @@
+// utils/supabase/middleware.ts
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-/** Only gate these */
-const PROTECTED_PREFIXES = ["/api", "/admin"] as const;
-type ProtectedPrefix = (typeof PROTECTED_PREFIXES)[number];
-
-/** App roles (exactly as you store them) */
-const ROLES = [
-  "ADMIN",
-  "EDITOR",
-  "MEMBER",
-  "GUEST",
-  "ASSOCIATE",
-  "TREASURER",
-  "CLERK",
-] as const;
-type Role = (typeof ROLES)[number];
-
-/** Who may access /api and /admin */
-const ALLOWED_SECURE_ROLES = new Set<Role>([
+/** Roles allowed to access /admin */
+const ALLOWED_ADMIN_ROLES: ReadonlySet<string> = new Set([
   "ADMIN",
   "EDITOR",
   "TREASURER",
   "CLERK",
 ]);
 
-function getProtectedPrefix(pathname: string): ProtectedPrefix | null {
-  for (const p of PROTECTED_PREFIXES) if (pathname.startsWith(p)) return p;
-  return null;
-}
+/** API endpoints that should not require auth (e.g., first-run profile creation) */
+const API_AUTH_WHITELIST: ReadonlySet<string> = new Set<string>([
+  "/api/ensure-profile",
+]);
 
-function getUserRole(user: any): Role | undefined {
+function getUserRole(user: any): string | undefined {
   const raw =
     (user?.app_metadata?.role as string | undefined) ??
     (user?.user_metadata?.role as string | undefined);
-
   if (!raw) return undefined;
-  const norm = String(raw).toUpperCase().trim();
-  return (ROLES as readonly string[]).includes(norm)
-    ? (norm as Role)
-    : undefined;
+  return String(raw).toUpperCase().trim();
 }
 
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+  // Base response for this invocation (may be replaced by cookie adapter)
+  let response = NextResponse.next({ request });
 
+  // Build a server client that reads cookies from the incoming request
+  // and writes any updated auth cookies to the outgoing response.
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, // anon/publishable key
     {
       cookies: {
         getAll: () => request.cookies.getAll(),
         setAll: (cookiesToSet) => {
+          // keep request cookies in sync for this invocation
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
-          supabaseResponse = NextResponse.next({ request });
+          // re-create the response so Next propagates changes
+          response = NextResponse.next({ request });
+          // send Set-Cookie headers back to the browser
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            response.cookies.set(name, value, options)
           );
         },
       },
     }
   );
 
+  const { pathname } = request.nextUrl;
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
+  // ===== Gate /api/* =====
+  if (pathname.startsWith("/api")) {
+    // Allow whitelisted endpoints without auth (e.g., ensure-profile right after sign-in)
+    if (API_AUTH_WHITELIST.has(pathname)) return response;
 
-  // Only gate /api and /admin
-  const matchedPrefix = getProtectedPrefix(pathname);
-  if (!matchedPrefix) return supabaseResponse;
-
-  // Require login
-  if (!user) {
-    const isApi = matchedPrefix === "/api";
-    if (isApi) {
-      return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
+    // All other /api routes require a session
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const url = request.nextUrl.clone();
-    url.pathname = "auth/login";
-    return NextResponse.redirect(url);
+    // Per-route role checks can still happen inside each API route if needed
+    return response;
   }
 
-  // Require allowed role
-  const role = getUserRole(user);
-  const allowed = role ? ALLOWED_SECURE_ROLES.has(role) : false;
-
-  if (!allowed) {
-    const isApi = matchedPrefix === "/api";
-    if (isApi) {
-      return new NextResponse(
-        JSON.stringify({ error: "Forbidden: insufficient role" }),
-        {
-          status: 403,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+  // ===== Gate /admin/* (require session + allowed role) =====
+  if (pathname.startsWith("/admin")) {
+    if (!user) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/auth/login"; // NOTE: leading slash
+      return NextResponse.redirect(url);
     }
-    return new NextResponse("Forbidden", { status: 403 });
+    const role = getUserRole(user);
+    if (!role || !ALLOWED_ADMIN_ROLES.has(role)) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+    return response;
   }
 
-  return supabaseResponse;
+  // Everything else passes through
+  return response;
 }
-
-// Optional: run middleware on everything except static/_next
-// export const config = { matcher: ["/((?!_next|.*\\..*).*)"] };
