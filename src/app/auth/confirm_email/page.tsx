@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic"; // <— prevent build-time prerender
+
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -15,22 +17,31 @@ export default function ConfirmEmailPage() {
 
   const nextUrl = params.get("next") || "/";
 
+  // Only create supabase client in the browser
   const supabase = useMemo(() => {
-    // Client-side Supabase instance (no SSR helpers needed here)
-    return createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    if (typeof window === "undefined") return null;
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    // Support either env name (standardize in your project later)
+    const key =
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !key) return null;
+    return createClient(url, key);
   }, []);
 
   const runConfirmation = useCallback(async () => {
+    if (!supabase) {
+      // Happens for the very first render during hydration
+      return;
+    }
+
     setStatus("working");
     setMessage("Confirming your email…");
 
     try {
-      // Supabase can deliver either:
-      // 1) ?code=... (newer flow, use exchangeCodeForSession)
-      // 2) ?token_hash=...&type=signup|recovery (older flow, use verifyOtp)
+      // Supabase can send either:
+      // 1) ?code=... (modern) -> exchangeCodeForSession
+      // 2) ?token_hash=...&type=signup|recovery (legacy) -> verifyOtp
       const code = params.get("code");
       const tokenHash = params.get("token_hash");
       const typeParam = (params.get("type") || "signup") as
@@ -41,11 +52,14 @@ export default function ConfirmEmailPage() {
         | "invite";
 
       if (code) {
-        // New flow
         const { data, error } = await supabase.auth.exchangeCodeForSession(
           code
         );
         if (error) throw error;
+
+        // Ensure your app-side user row exists
+        await fetch("/api/ensure-profile", { method: "POST" });
+
         if (data?.session) {
           setStatus("success");
           setMessage("Email confirmed! You can proceed.");
@@ -53,12 +67,15 @@ export default function ConfirmEmailPage() {
         }
         throw new Error("No session returned after confirmation.");
       } else if (tokenHash) {
-        // Legacy/alt flow
         const { data, error } = await supabase.auth.verifyOtp({
           type: typeParam === "recovery" ? "recovery" : "email",
           token_hash: tokenHash,
         } as any);
         if (error) throw error;
+
+        // Ensure your app-side user row exists
+        await fetch("/api/ensure-profile", { method: "POST" });
+
         if (data?.session || data?.user) {
           setStatus("success");
           setMessage("Email confirmed! You can proceed.");
@@ -66,7 +83,6 @@ export default function ConfirmEmailPage() {
         }
         throw new Error("Verification did not return a session/user.");
       } else {
-        // No recognizable params — show guidance
         setStatus("error");
         setMessage(
           "Missing confirmation token. Please open the link from your email again."
@@ -81,8 +97,12 @@ export default function ConfirmEmailPage() {
   }, [params, supabase]);
 
   useEffect(() => {
-    // Auto-run once when page loads
-    if (status === "idle") runConfirmation();
+    if (status === "idle") {
+      // Defer to next tick so useMemo can run in the browser
+      setTimeout(() => {
+        void runConfirmation();
+      }, 0);
+    }
   }, [status, runConfirmation]);
 
   const proceed = () => router.replace(nextUrl);
@@ -104,7 +124,6 @@ export default function ConfirmEmailPage() {
           className="text-center mb-6"
         >
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-full border border-gold-400/60 bg-white/10 shadow-md">
-            {/* Simple check/mail icon using tailwind + inline SVG */}
             {status === "success" ? (
               <svg
                 className="w-7 h-7 text-gold-400"
@@ -137,7 +156,7 @@ export default function ConfirmEmailPage() {
           <p className="mt-2 text-blue-100">{message}</p>
         </motion.div>
 
-        {/* Progress / Result Card */}
+        {/* Body */}
         <div className="space-y-6">
           {status === "working" && (
             <motion.div
@@ -209,7 +228,6 @@ export default function ConfirmEmailPage() {
           )}
         </div>
 
-        {/* Help text */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
