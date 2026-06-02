@@ -1,146 +1,93 @@
-"use client";
-
-import React from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { FaUsers, FaHeart, FaVideo, FaGift, FaFileAlt } from "react-icons/fa";
+import Header from "@/components/header";
+import Footer from "@/components/footer";
+import {
+  BookOpen,
+  CalendarDays,
+  FileText,
+  HandHeart,
+  Library,
+  Video,
+} from "lucide-react";
 
 const resources = [
   {
-    category: "Sermons",
-    icon: FaVideo,
-    items: [
-      { title: "Latest Sermons", url: "/sermons" },
-      { title: "Sermon Archive", url: "/sermons/archive" },
-      { title: "Audio Sermons", url: "/sermons/audio" },
-      { title: "Video Sermons", url: "/sermons/video" },
-    ],
+    title: "Sermons",
+    body: "Recent messages, media links, and sermon notes.",
+    href: "/resources/sermons",
+    icon: Video,
   },
   {
-    category: "Bible Study",
-    icon: FaGift,
-    items: [
-      { title: "Weekly Bible Study", url: "/bible-study/weekly" },
-      { title: "Study Guides", url: "/bible-study/guides" },
-      { title: "Devotionals", url: "/bible-study/devotionals" },
-      { title: "Children's Bible Lessons", url: "/bible-study/children" },
-    ],
+    title: "Bible Study",
+    body: "Study guides, Sabbath School notes, and discipleship material.",
+    href: "/resources/bible_studies",
+    icon: BookOpen,
   },
   {
-    category: "Community",
-    icon: FaUsers,
-    items: [
-      { title: "Prayer Requests", url: "/community/prayer-requests" },
-      { title: "Volunteer Opportunities", url: "/community/volunteer" },
-      { title: "Events Calendar", url: "/community/events" },
-      { title: "Support Groups", url: "/community/support-groups" },
-    ],
+    title: "Events Calendar",
+    body: "Worship services, ministry meetings, and outreach dates.",
+    href: "/events",
+    icon: CalendarDays,
   },
   {
-    category: "Media",
-    icon: FaVideo,
-    items: [
-      { title: "Photo Gallery", url: "/media/photos" },
-      { title: "Church Newsletter", url: "/media/newsletter" },
-      { title: "Podcast", url: "/media/podcast" },
-      { title: "Livestream", url: "/media/livestream" },
-    ],
+    title: "Prayer and Care",
+    body: "Send requests and schedule pastoral follow-up.",
+    href: "/contact",
+    icon: HandHeart,
   },
   {
-    category: "Giving",
-    icon: FaGift,
-    items: [
-      { title: "Online Giving", url: "/giving/online" },
-      { title: "Tithes & Offerings", url: "/giving/tithes" },
-      { title: "Missions Support", url: "/giving/missions" },
-      { title: "Fundraising", url: "/giving/fundraising" },
-    ],
+    title: "Church Documents",
+    body: "Policies, reports, forms, and ministry downloads.",
+    href: "/resources",
+    icon: FileText,
   },
   {
-    category: "Resources",
-    icon: FaFileAlt,
-    items: [
-      { title: "Downloadable Materials", url: "/resources/downloads" },
-      { title: "Recommended Books", url: "/resources/books" },
-      { title: "Faith Articles", url: "/resources/articles" },
-      { title: "FAQs", url: "/resources/faq" },
-    ],
+    title: "Ministry Library",
+    body: "Curated resources for leaders, members, and volunteers.",
+    href: "/about",
+    icon: Library,
   },
 ];
 
-import type { Variants } from "framer-motion";
-
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.15 },
-  },
-};
-
-const cardVariants: Variants = {
-  hidden: { opacity: 0, y: 40 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { type: "spring", stiffness: 80 },
-  },
-};
-
 export default function ResourcesPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 py-16 px-6">
-      <motion.h1
-        initial={{ opacity: 0, y: -30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7 }}
-        className="text-5xl font-extrabold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-blue-800 to-blue-500"
-      >
-        Church Resources
-      </motion.h1>
+    <>
+      <Header />
+      <main className="church-page pt-20">
+        <section className="border-b border-brand-line bg-brand-cream">
+          <div className="church-container py-14">
+            <p className="church-kicker">Resources</p>
+            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-brand-ink sm:text-5xl">
+              Church resource hub
+            </h1>
+            <p className="church-copy mt-3 max-w-2xl">
+              Sermons, Bible study materials, ministry documents, events, and
+              care pathways gathered in one place.
+            </p>
+          </div>
+        </section>
 
-      <motion.div
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 max-w-7xl mx-auto"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        {resources.map((section) => {
-          const Icon = section.icon;
-          return (
-            <motion.div
-              key={section.category}
-              variants={cardVariants}
-              whileHover={{ y: -5, scale: 1.02 }}
-              className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-2xl transition-all duration-300"
-            >
-              <div className="flex items-center gap-3 mb-5">
-                <div className="p-3 rounded-xl bg-blue-100 text-blue-700">
-                  <Icon className="w-6 h-6" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-800">
-                  {section.category}
+        <section className="church-section">
+          <div className="church-container grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {resources.map(({ title, body, href, icon: Icon }) => (
+              <Link
+                key={title}
+                href={href}
+                className="church-card-plain p-5 transition hover:border-brand-gold hover:bg-white"
+              >
+                <span className="grid h-11 w-11 place-items-center rounded-lg bg-brand-forest text-brand-cream">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <h2 className="mt-5 text-xl font-semibold text-brand-ink">
+                  {title}
                 </h2>
-              </div>
-              <ul className="space-y-3">
-                {section.items.map((item) => (
-                  <li key={item.title}>
-                    <Link
-                      href={item.url}
-                      className="group flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors"
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-all"></span>
-                      <span className="group-hover:underline">
-                        {item.title}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-          );
-        })}
-      </motion.div>
-    </main>
+                <p className="mt-2 text-sm leading-6 text-brand-muted">{body}</p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </>
   );
 }

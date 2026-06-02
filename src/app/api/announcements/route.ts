@@ -1,23 +1,19 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-// ✅ GET all announcements
 export async function GET() {
   try {
     const announcements = await prisma.announcement.findMany({
+      where: { published: true },
       include: {
-        createdBy: {
-          select: { id: true },
-        },
+        createdBy: { select: { id: true, fullName: true } },
       },
-      orderBy: {
-        createdAt: "desc", // newest first
-      },
+      orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
     });
 
     return NextResponse.json(announcements);
   } catch (error) {
-    console.error("Error fetching announcements:", error);
+    console.error("GET /api/announcements error:", error);
     return NextResponse.json(
       { error: "Failed to fetch announcements" },
       { status: 500 }
@@ -25,46 +21,47 @@ export async function GET() {
   }
 }
 
-// ✅ POST create a new announcement
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { title, body: announcementBody, createdById } = body;
+    const title = cleanString(body.title);
+    const announcementBody = cleanString(body.body);
 
-    // Validation
-    if (!title || !announcementBody || !createdById) {
+    if (!title || !announcementBody) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Title and body are required" },
         { status: 400 }
       );
     }
 
-    // Check if user exists
-    const user = await prisma.user.findUnique({ where: { id: createdById } });
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    // Create announcement
-    const newAnnouncement = await prisma.announcement.create({
+    const announcement = await prisma.announcement.create({
       data: {
         title,
         body: announcementBody,
-        createdById,
+        summary: cleanString(body.summary),
+        audience: body.audience || "PUBLIC",
+        status: body.status || "PUBLISHED",
+        pinned: Boolean(body.pinned),
+        published: typeof body.published === "boolean" ? body.published : true,
+        expiresAt: body.expiresAt ? new Date(String(body.expiresAt)) : undefined,
+        createdById: cleanString(body.createdById),
       },
       include: {
-        createdBy: {
-          select: { id: true },
-        },
+        createdBy: { select: { id: true, fullName: true } },
       },
     });
 
-    return NextResponse.json(newAnnouncement, { status: 201 });
+    return NextResponse.json(announcement, { status: 201 });
   } catch (error) {
-    console.error("Error creating announcement:", error);
+    console.error("POST /api/announcements error:", error);
     return NextResponse.json(
       { error: "Failed to create announcement" },
       { status: 500 }
     );
   }
+}
+
+function cleanString(value: unknown) {
+  const text = String(value ?? "").trim();
+  return text.length ? text : undefined;
 }

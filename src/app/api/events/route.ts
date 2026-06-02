@@ -1,25 +1,22 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-// ✅ GET all events
 export async function GET() {
   try {
     const events = await prisma.event.findMany({
+      where: { published: true },
       include: {
-        createdBy: {
-          select: {
-            id: true,
-          },
-        },
+        _count: { select: { rsvps: true } },
+        venue: { select: { id: true, name: true, location: true } },
+        ministry: { select: { id: true, name: true, slug: true } },
+        createdBy: { select: { id: true, fullName: true } },
       },
-      orderBy: {
-        start: "asc",
-      },
+      orderBy: { start: "asc" },
     });
 
     return NextResponse.json(events);
   } catch (error) {
-    console.error("Error fetching events:", error);
+    console.error("GET /api/events error:", error);
     return NextResponse.json(
       { error: "Failed to fetch events" },
       { status: 500 }
@@ -27,50 +24,52 @@ export async function GET() {
   }
 }
 
-// ✅ POST create a new event
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const {
-      title,
-      description,
-      start,
-      end,
-      category,
-      registrationLink,
-      createdById,
-    } = body;
+    const { title, start } = body;
 
-    if (!title || !start || !end || !category || !createdById) {
+    if (!title || !start) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Title and start date are required" },
         { status: 400 }
       );
     }
 
-    const newEvent = await prisma.event.create({
+    const event = await prisma.event.create({
       data: {
         title,
-        description,
+        description: cleanString(body.description),
         start: new Date(start),
-        end: new Date(end),
-        category,
-        registrationLink,
-        createdById,
+        end: body.end ? new Date(String(body.end)) : undefined,
+        category: body.category || "GENERAL",
+        visibility: body.visibility || "PUBLIC",
+        location: cleanString(body.location),
+        coverUrl: cleanString(body.coverUrl),
+        capacity: body.capacity ? Number(body.capacity) : undefined,
+        registrationLink: cleanString(body.registrationLink),
+        published: typeof body.published === "boolean" ? body.published : true,
+        createdById: cleanString(body.createdById),
+        ministryId: cleanString(body.ministryId),
+        venueId: cleanString(body.venueId),
       },
       include: {
-        createdBy: {
-          select: { id: true },
-        },
+        _count: { select: { rsvps: true } },
+        createdBy: { select: { id: true, fullName: true } },
       },
     });
 
-    return NextResponse.json(newEvent, { status: 201 });
+    return NextResponse.json(event, { status: 201 });
   } catch (error) {
-    console.error("Error creating event:", error);
+    console.error("POST /api/events error:", error);
     return NextResponse.json(
       { error: "Failed to create event" },
       { status: 500 }
     );
   }
+}
+
+function cleanString(value: unknown) {
+  const text = String(value ?? "").trim();
+  return text.length ? text : undefined;
 }

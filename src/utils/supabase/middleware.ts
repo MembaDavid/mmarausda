@@ -10,9 +10,20 @@ const ALLOWED_ADMIN_ROLES: ReadonlySet<string> = new Set([
   "CLERK",
 ]);
 
-/** API endpoints that should not require auth (e.g., first-run profile creation) */
-const API_AUTH_WHITELIST: ReadonlySet<string> = new Set<string>([
+/** API endpoints that should not require auth. */
+const PUBLIC_API_ROUTES: ReadonlySet<string> = new Set<string>([
   "/api/ensure-profile",
+  "/api/whoami",
+]);
+
+const PUBLIC_GET_ROUTES: ReadonlySet<string> = new Set<string>([
+  "/api/events",
+  "/api/sermons",
+  "/api/announcements",
+]);
+
+const PUBLIC_POST_ROUTES: ReadonlySet<string> = new Set<string>([
+  "/api/contact",
 ]);
 
 function getUserRole(user: any): string | undefined {
@@ -58,8 +69,13 @@ export async function updateSession(request: NextRequest) {
 
   // ===== Gate /api/* =====
   if (pathname.startsWith("/api")) {
-    // Allow whitelisted endpoints without auth (e.g., ensure-profile right after sign-in)
-    if (API_AUTH_WHITELIST.has(pathname)) return response;
+    if (PUBLIC_API_ROUTES.has(pathname)) return response;
+    if (request.method === "GET" && PUBLIC_GET_ROUTES.has(pathname)) {
+      return response;
+    }
+    if (request.method === "POST" && PUBLIC_POST_ROUTES.has(pathname)) {
+      return response;
+    }
 
     // All other /api routes require a session
     if (!user) {

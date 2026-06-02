@@ -1,53 +1,57 @@
-// Prisma Schema for SDA Church App (updated)
-// Key changes applied from your notes:
-// - Decimal money type for Offerings
-// - PaymentMethod enum (normalized)
-// - transactionId unique
-// - added updatedAt + published to content models
-// - graduationYear as Int
-// - helpful indexes
-// NOTE: Enforce Event.end > Event.start in application logic.
-// Prisma Schema for SDA Church App (updated + back-relation for Sermon.preacherRef)
-// Prisma Schema for SDA Church App (fixed to avoid touching `auth`)
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider   = "postgresql"
-  url        = env("DATABASE_URL")        // use ?schema=public
-  directUrl  = env("DIRECT_DATABASE_URL")          // 5432, non-pooled; name can match your .env
-  schemas    = ["public"]                 // ✅ remove "auth"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+  schemas   = ["public"]
 }
 
-/* ========================= App Models (public) ========================= */
+/* ========================= Core Identity ========================= */
 
 model User {
-  id             String   @id @default(uuid()) @db.Uuid()
+  id         String     @id @default(uuid()) @db.Uuid()
+  authUserId String     @unique @db.Uuid()
+  email      String?    @unique
+  fullName   String?
+  phone      String?
+  avatarUrl  String?
+  role       Role       @default(GUEST)
+  status     UserStatus @default(ACTIVE)
+  gender     Gender?
+  homeChurch String?
+  lastSeenAt DateTime?
 
-  // Link to Supabase Auth (store UUID only; no Prisma relation to `auth.users`)
-  authUserId     String   @unique @db.Uuid()
+  memberProfile          MemberProfile?
+  verifiedMemberProfiles MemberProfile[]   @relation("VerifiedMembers")
+  offerings              Offering[]
+  createdEvents          Event[]           @relation("CreatedEvents")
+  announcements          Announcement[]
+  prayerRequests         PrayerRequest[]   @relation("PrayerRequester")
+  assignedPrayerRequests PrayerRequest[]   @relation("PrayerAssignee")
+  prayerUpdates          PrayerUpdate[]
+  visitations            Visitation[]      @relation("VisitationRequester")
+  assignedVisitations    Visitation[]      @relation("VisitationAssignee")
+  sermonsPreached        Sermon[]          @relation("SermonPreacher")
+  ministryMemberships    MinistryMember[]
+  ledMinistries          Ministry[]        @relation("MinistryLead")
+  eventRsvps             EventRsvp[]
+  attendanceRecords      AttendanceRecord[]
+  resources              Resource[]        @relation("CreatedResources")
+  bibleStudies           BibleStudy[]      @relation("CreatedBibleStudies")
+  notifications          Notification[]
+  auditLogs              AuditLog[]        @relation("AuditActor")
+  worshipAssignments     ServiceItem[]     @relation("ServiceItemAssignee")
 
-  // App-specific fields
-  role           Role     @default(GUEST)
-  gender         Gender?
-  homeChurch     String?
-
-  // Relations
-  memberProfile   MemberProfile?
-  offerings       Offering[]
-  events          Event[]         @relation("CreatedEvents")
-  announcements   Announcement[]
-  prayerRequests  PrayerRequest[]
-  visitations     Visitation[]
-  sermonsPreached Sermon[]        // back-rel for Sermon.preacherRef
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   @@index([authUserId])
+  @@index([email])
+  @@index([role, status])
   @@schema("public")
 }
 
@@ -56,72 +60,318 @@ model MemberProfile {
   userId           String           @unique @db.Uuid()
   user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   membershipStatus MembershipStatus @default(ACTIVE)
+  studentNumber    String?          @unique
+  faculty          String?
+  course           String?
+  yearOfStudy      Int?
   address          String?
   dateOfBirth      DateTime?
   joinedAt         DateTime         @default(now())
   graduationYear   Int?
   baptismDate      DateTime?
+  emergencyName    String?
+  emergencyPhone   String?
+  verifiedAt       DateTime?
+  verifiedById     String?          @db.Uuid()
+  verifiedBy       User?            @relation("VerifiedMembers", fields: [verifiedById], references: [id], onDelete: SetNull)
   deletedAt        DateTime?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
+  @@index([membershipStatus])
+  @@index([graduationYear])
   @@schema("public")
 }
 
-model Event {
-  id               String        @id @default(uuid()) @db.Uuid()
-  title            String
-  description      String
-  category         EventCategory
-  start            DateTime
-  end              DateTime
-  registrationLink String?
-  published        Boolean       @default(true)
+/* ========================= Ministries and Worship ========================= */
 
-  createdById String? @db.Uuid()
-  createdBy   User?   @relation("CreatedEvents", fields: [createdById], references: [id], onDelete: SetNull)
+model Ministry {
+  id          String       @id @default(uuid()) @db.Uuid()
+  name        String
+  slug        String       @unique
+  description String?
+  type        MinistryType @default(GENERAL)
+  email       String?
+  phone       String?
+  leadId      String?      @db.Uuid()
+  lead        User?        @relation("MinistryLead", fields: [leadId], references: [id], onDelete: SetNull)
+  members     MinistryMember[]
+  events      Event[]
+  resources   Resource[]
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
+
+  @@index([type])
+  @@index([leadId])
+  @@schema("public")
+}
+
+model MinistryMember {
+  id         String               @id @default(uuid()) @db.Uuid()
+  ministryId String               @db.Uuid()
+  ministry   Ministry             @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+  userId     String               @db.Uuid()
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleTitle  String?
+  status     MinistryMemberStatus @default(ACTIVE)
+  joinedAt   DateTime             @default(now())
+  endedAt    DateTime?
+
+  @@unique([ministryId, userId])
+  @@index([userId])
+  @@schema("public")
+}
+
+model Venue {
+  id          String  @id @default(uuid()) @db.Uuid()
+  name        String
+  location    String?
+  capacity    Int?
+  description String?
+  events      Event[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@schema("public")
+}
+
+model WorshipService {
+  id          String             @id @default(uuid()) @db.Uuid()
+  title       String
+  type        WorshipServiceType @default(DIVINE_SERVICE)
+  serviceDate DateTime
+  theme       String?
+  notes       String?
+  eventId     String?            @db.Uuid()
+  event       Event?             @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  items       ServiceItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceDate])
+  @@index([type])
+  @@schema("public")
+}
+
+model ServiceItem {
+  id          String          @id @default(uuid()) @db.Uuid()
+  serviceId   String          @db.Uuid()
+  service     WorshipService  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  order       Int
+  type        ServiceItemType @default(OTHER)
+  title       String
+  details     String?
+  assigneeId  String?         @db.Uuid()
+  assignee    User?           @relation("ServiceItemAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  @@unique([serviceId, order])
+  @@schema("public")
+}
+
+/* ========================= Events and Attendance ========================= */
+
+model Event {
+  id               String          @id @default(uuid()) @db.Uuid()
+  title            String
+  description      String?
+  category         EventCategory   @default(GENERAL)
+  visibility       EventVisibility @default(PUBLIC)
+  start            DateTime
+  end              DateTime?
+  location         String?
+  coverUrl         String?
+  capacity         Int?
+  registrationLink String?
+  published        Boolean         @default(true)
+
+  ministryId  String?   @db.Uuid()
+  ministry    Ministry? @relation(fields: [ministryId], references: [id], onDelete: SetNull)
+  venueId     String?   @db.Uuid()
+  venue       Venue?    @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  createdById String?   @db.Uuid()
+  createdBy   User?     @relation("CreatedEvents", fields: [createdById], references: [id], onDelete: SetNull)
+
+  rsvps           EventRsvp[]
+  attendance      AttendanceRecord[]
+  worshipServices WorshipService[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([category])
   @@index([start])
-  @@index([createdAt])
+  @@index([published, start])
+  @@index([ministryId])
+  @@schema("public")
+}
+
+model EventRsvp {
+  id         String     @id @default(uuid()) @db.Uuid()
+  eventId    String     @db.Uuid()
+  event      Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId     String?    @db.Uuid()
+  user       User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  guestName  String?
+  guestEmail String?
+  guestPhone String?
+  status     RsvpStatus @default(GOING)
+  notes      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([eventId, userId])
+  @@index([eventId, status])
+  @@schema("public")
+}
+
+model AttendanceRecord {
+  id          String           @id @default(uuid()) @db.Uuid()
+  eventId     String?          @db.Uuid()
+  event       Event?           @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  userId      String?          @db.Uuid()
+  user        User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  guestName   String?
+  serviceDate DateTime
+  status      AttendanceStatus @default(PRESENT)
+  checkInAt   DateTime?
+  notes       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceDate])
+  @@index([eventId])
+  @@index([userId])
+  @@schema("public")
+}
+
+/* ========================= Content and Resources ========================= */
+
+model SermonSeries {
+  id          String   @id @default(uuid()) @db.Uuid()
+  title       String
+  slug        String   @unique
+  description String?
+  sermons     Sermon[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@schema("public")
 }
 
 model Sermon {
-  id          String   @id @default(uuid()) @db.Uuid()
+  id          String      @id @default(uuid()) @db.Uuid()
   title       String
-  preacher    String?  // free-text for guests
-  preacherId  String?  @db.Uuid()
-  preacherRef User?    @relation(fields: [preacherId], references: [id], onDelete: SetNull) // back-rel: User.sermonsPreached
+  preacher    String?
+  preacherId  String?     @db.Uuid()
+  preacherRef User?       @relation("SermonPreacher", fields: [preacherId], references: [id], onDelete: SetNull)
+  seriesId    String?     @db.Uuid()
+  series      SermonSeries? @relation(fields: [seriesId], references: [id], onDelete: SetNull)
   deliveredAt DateTime
-  mediaUrl    String
-  type        SermonType
+  scripture   String?
+  mediaUrl    String?
+  notesUrl    String?
+  thumbnailUrl String?
+  type        SermonType  @default(VIDEO)
   description String?
-  published   Boolean  @default(true)
+  published   Boolean     @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([deliveredAt])
-  @@index([createdAt])
+  @@index([published, deliveredAt])
+  @@index([preacherId])
   @@schema("public")
 }
 
 model Announcement {
-  id          String   @id @default(uuid()) @db.Uuid()
+  id          String               @id @default(uuid()) @db.Uuid()
   title       String
   body        String
-  published   Boolean  @default(true)
-  createdById String?  @db.Uuid()
-  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  summary     String?
+  audience    AnnouncementAudience @default(PUBLIC)
+  status      ContentStatus        @default(PUBLISHED)
+  pinned      Boolean              @default(false)
+  published   Boolean              @default(true)
+  expiresAt   DateTime?
+  createdById String?              @db.Uuid()
+  createdBy   User?                @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([createdAt])
+  @@index([published, createdAt])
+  @@index([audience])
+  @@schema("public")
+}
+
+model Resource {
+  id          String       @id @default(uuid()) @db.Uuid()
+  title       String
+  slug        String       @unique
+  type        ResourceType @default(DOCUMENT)
+  description String?
+  url         String?
+  body        String?
+  thumbnailUrl String?
+  published   Boolean      @default(true)
+  ministryId  String?      @db.Uuid()
+  ministry    Ministry?    @relation(fields: [ministryId], references: [id], onDelete: SetNull)
+  createdById String?      @db.Uuid()
+  createdBy   User?        @relation("CreatedResources", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([published, createdAt])
+  @@schema("public")
+}
+
+model BibleStudy {
+  id          String  @id @default(uuid()) @db.Uuid()
+  title       String
+  slug        String  @unique
+  series      String?
+  quarter     String?
+  year        Int?
+  lessonNumber Int?
+  scripture   String?
+  content     String?
+  resourceUrl String?
+  published   Boolean @default(true)
+  createdById String? @db.Uuid()
+  createdBy   User?   @relation("CreatedBibleStudies", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, year])
+  @@schema("public")
+}
+
+/* ========================= Giving and Care ========================= */
+
+model Fund {
+  id          String   @id @default(uuid()) @db.Uuid()
+  name        String
+  code        String   @unique
+  type        FundType @default(OTHER)
+  description String?
+  active      Boolean  @default(true)
+  offerings   Offering[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active])
   @@schema("public")
 }
 
@@ -129,45 +379,150 @@ model Offering {
   id            String           @id @default(uuid()) @db.Uuid()
   userId        String           @db.Uuid()
   user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fundId        String?          @db.Uuid()
+  fund          Fund?            @relation(fields: [fundId], references: [id], onDelete: SetNull)
   category      OfferingCategory
   amount        Decimal          @db.Decimal(12, 2)
+  currency      String           @default("KES")
   paymentMethod PaymentMethod
   transactionId String?          @unique
+  receiptNumber String?          @unique
+  note          String?
   date          DateTime         @default(now())
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([category])
+  @@index([fundId])
   @@index([date])
   @@schema("public")
 }
 
 model PrayerRequest {
-  id        String       @id @default(uuid()) @db.Uuid()
-  userId    String       @db.Uuid()
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  request   String
-  status    PrayerStatus @default(PENDING)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id             String         @id @default(uuid()) @db.Uuid()
+  userId         String         @db.Uuid()
+  user           User           @relation("PrayerRequester", fields: [userId], references: [id], onDelete: Cascade)
+  assignedToId   String?        @db.Uuid()
+  assignedTo     User?          @relation("PrayerAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  category       PrayerCategory @default(GENERAL)
+  request        String
+  isConfidential Boolean        @default(false)
+  status         PrayerStatus   @default(PENDING)
+  prayedAt       DateTime?
+  updates        PrayerUpdate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status])
   @@index([createdAt])
+  @@index([assignedToId])
+  @@schema("public")
+}
+
+model PrayerUpdate {
+  id              String        @id @default(uuid()) @db.Uuid()
+  prayerRequestId String        @db.Uuid()
+  prayerRequest   PrayerRequest @relation(fields: [prayerRequestId], references: [id], onDelete: Cascade)
+  authorId        String?       @db.Uuid()
+  author          User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  body            String
+  createdAt       DateTime      @default(now())
+
+  @@index([prayerRequestId])
   @@schema("public")
 }
 
 model Visitation {
-  id          String           @id @default(uuid()) @db.Uuid()
-  userId      String           @db.Uuid()
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  purpose     String
-  scheduledAt DateTime
-  status      VisitationStatus @default(PENDING)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id           String           @id @default(uuid()) @db.Uuid()
+  userId       String           @db.Uuid()
+  user         User             @relation("VisitationRequester", fields: [userId], references: [id], onDelete: Cascade)
+  assignedToId String?          @db.Uuid()
+  assignedTo   User?            @relation("VisitationAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  purpose      String
+  location     String?
+  scheduledAt  DateTime
+  completedAt  DateTime?
+  status       VisitationStatus @default(PENDING)
+  notes        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([scheduledAt])
+  @@index([status])
+  @@index([assignedToId])
+  @@schema("public")
+}
+
+model ContactMessage {
+  id               String                 @id @default(uuid()) @db.Uuid()
+  name             String
+  email            String
+  phone            String?
+  category         ContactMessageCategory @default(GENERAL)
+  subject          String
+  message          String
+  preferredDate    DateTime?
+  location         String?
+  ministryInterest String?
+  consent          Boolean                @default(false)
+  status           ContactMessageStatus   @default(NEW)
+  handledById      String?                @db.Uuid()
+  handledAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([category])
+  @@schema("public")
+}
+
+/* ========================= Operations ========================= */
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid()
+  userId    String           @db.Uuid()
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType @default(GENERAL)
+  title     String
+  body      String?
+  readAt    DateTime?
+  link      String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, readAt])
+  @@schema("public")
+}
+
+model AuditLog {
+  id        String  @id @default(uuid()) @db.Uuid()
+  actorId   String? @db.Uuid()
+  actor     User?   @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorId])
+  @@index([entity, entityId])
+  @@schema("public")
+}
+
+model ChurchSetting {
+  id          String @id @default(uuid()) @db.Uuid()
+  key         String @unique
+  value       Json
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@schema("public")
 }
 
@@ -182,6 +537,15 @@ enum Role {
   TREASURER
   CLERK
   STAFF
+
+  @@schema("public")
+}
+
+enum UserStatus {
+  ACTIVE
+  PENDING
+  SUSPENDED
+  ARCHIVED
 
   @@schema("public")
 }
@@ -202,13 +566,67 @@ enum Gender {
   @@schema("public")
 }
 
+enum MinistryType {
+  WORSHIP
+  YOUTH
+  AMO
+  ALO
+  WELFARE
+  MEDIA
+  BIBLE_STUDY
+  TREASURY
+  GENERAL
+
+  @@schema("public")
+}
+
+enum MinistryMemberStatus {
+  ACTIVE
+  INACTIVE
+  ALUMNI
+
+  @@schema("public")
+}
+
 enum EventCategory {
   SABBATH
   AMO
   ALO
   BIBLE_STUDY
   SOCIAL
+  OUTREACH
+  PRAYER
+  CHOIR
+  TRAINING
+  FUNDRAISING
   GENERAL
+
+  @@schema("public")
+}
+
+enum EventVisibility {
+  PUBLIC
+  MEMBERS
+  LEADERS
+  PRIVATE
+
+  @@schema("public")
+}
+
+enum RsvpStatus {
+  GOING
+  WAITLISTED
+  CANCELLED
+  CHECKED_IN
+
+  @@schema("public")
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  EXCUSED
+  ONLINE
 
   @@schema("public")
 }
@@ -217,6 +635,45 @@ enum SermonType {
   VIDEO
   AUDIO
   TEXT
+
+  @@schema("public")
+}
+
+enum AnnouncementAudience {
+  PUBLIC
+  MEMBERS
+  LEADERS
+
+  @@schema("public")
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+
+  @@schema("public")
+}
+
+enum ResourceType {
+  DOCUMENT
+  VIDEO
+  AUDIO
+  LINK
+  FORM
+  SERMON_NOTES
+  BIBLE_STUDY
+
+  @@schema("public")
+}
+
+enum FundType {
+  TITHE
+  OFFERING
+  WELFARE
+  MISSION
+  PROJECT
+  OTHER
 
   @@schema("public")
 }
@@ -242,6 +699,18 @@ enum PaymentMethod {
   @@schema("public")
 }
 
+enum PrayerCategory {
+  GENERAL
+  HEALING
+  FAMILY
+  ACADEMIC
+  FINANCIAL
+  THANKSGIVING
+  OTHER
+
+  @@schema("public")
+}
+
 enum PrayerStatus {
   PENDING
   IN_PROGRESS
@@ -254,6 +723,60 @@ enum VisitationStatus {
   PENDING
   COMPLETED
   CANCELLED
+
+  @@schema("public")
+}
+
+enum ContactMessageCategory {
+  GENERAL
+  PRAYER_REQUEST
+  VISITATION
+  VOLUNTEERING
+  GIVING
+
+  @@schema("public")
+}
+
+enum ContactMessageStatus {
+  NEW
+  IN_REVIEW
+  RESPONDED
+  CLOSED
+  SPAM
+
+  @@schema("public")
+}
+
+enum NotificationType {
+  GENERAL
+  EVENT
+  PRAYER
+  VISITATION
+  GIVING
+  SYSTEM
+
+  @@schema("public")
+}
+
+enum WorshipServiceType {
+  SABBATH_SCHOOL
+  DIVINE_SERVICE
+  VESPERS
+  MIDWEEK
+  SPECIAL
+
+  @@schema("public")
+}
+
+enum ServiceItemType {
+  SONG
+  PRAYER
+  SCRIPTURE
+  SERMON
+  OFFERING
+  ANNOUNCEMENT
+  SPECIAL_MUSIC
+  OTHER
 
   @@schema("public")
 }

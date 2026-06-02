@@ -2,14 +2,20 @@
 
 export const dynamic = "force-dynamic"; // <— prevent build-time prerender
 
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { createClient } from "@supabase/supabase-js";
 
 type Status = "idle" | "working" | "success" | "error";
 
-export default function ConfirmEmailPage() {
+function ConfirmEmailContent() {
   const router = useRouter();
   const params = useSearchParams();
   const [status, setStatus] = useState<Status>("idle");
@@ -239,5 +245,24 @@ export default function ConfirmEmailPage() {
         </motion.div>
       </motion.div>
     </div>
+  );
+}
+
+export default function ConfirmEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-700 to-blue-600 p-6">
+          <div className="w-full max-w-md bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/15 text-center">
+            <h1 className="text-2xl font-bold text-gold-400">
+              Confirming Email
+            </h1>
+            <p className="mt-2 text-blue-100">Preparing confirmation...</p>
+          </div>
+        </div>
+      }
+    >
+      <ConfirmEmailContent />
+    </Suspense>
   );
 }

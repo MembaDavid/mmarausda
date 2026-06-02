@@ -1,127 +1,241 @@
 "use client";
 
-import * as motion from "motion/react-client";
-import { useScroll, useTransform, motion as m } from "framer-motion";
+import Link from "next/link";
 import { useRef } from "react";
-import { Fredoka, Poppins, Pacifico } from "next/font/google";
+import type { ReactNode } from "react";
+import { motion, useScroll, useTransform } from "motion/react";
+import { ArrowRight, CalendarDays, Megaphone, PlayCircle } from "lucide-react";
 
-const headingFont = Fredoka({ subsets: ["latin"], weight: ["400", "700"] });
-const bodyFont = Poppins({ subsets: ["latin"], weight: ["400", "600"] });
-const eventFont = Pacifico({ subsets: ["latin"], weight: ["400"] });
+export type LandingEvent = {
+  id: string;
+  title: string;
+  start: string;
+  end?: string | null;
+  location?: string | null;
+  category?: string | null;
+};
 
-export default function Hero() {
-  const hymnRef = useRef(null);
+export type LandingSermon = {
+  id: string;
+  title: string;
+  preacher?: string | null;
+  deliveredAt: string;
+  mediaUrl?: string | null;
+};
+
+export type LandingAnnouncement = {
+  id: string;
+  title: string;
+  body: string;
+};
+
+export default function Hero({
+  nextEvent,
+  latestSermon,
+  announcements = [],
+}: {
+  nextEvent?: LandingEvent | null;
+  latestSermon?: LandingSermon | null;
+  announcements?: LandingAnnouncement[];
+}) {
+  const videoRef = useRef<HTMLElement | null>(null);
   const { scrollYProgress } = useScroll({
-    target: hymnRef,
+    target: videoRef,
     offset: ["start start", "end start"],
   });
-
-  // Scroll animations
-  const scaleVideo = useTransform(scrollYProgress, [0, 1], [1, 1.2]); // zoom in
-  const fadeOut = useTransform(scrollYProgress, [0, 1], [1, 0]); // fade hymn out
-  const moveUp = useTransform(scrollYProgress, [0, 1], ["0%", "-50%"]); // shift text
+  const scale = useTransform(scrollYProgress, [0, 1], [1, 1.08]);
+  const opacity = useTransform(scrollYProgress, [0, 0.85], [1, 0.75]);
 
   return (
-    <main className="min-h-screen flex flex-col bg-blue-900 text-white relative overflow-hidden">
-      {/* Loved Hymn Section with Scroll */}
+    <main className="church-page">
       <section
-        ref={hymnRef}
-        className="relative h-[70vh] w-full overflow-hidden"
+        ref={videoRef}
+        className="relative min-h-[92svh] overflow-hidden pt-24 text-brand-cream"
       >
-        <m.video
-          style={{ scale: scaleVideo }}
-          className="absolute top-0 left-0 w-full h-full object-cover"
+        <motion.video
+          style={{ scale }}
+          className="absolute inset-0 h-full w-full object-cover"
           src="/videos/hymn.mp4"
           autoPlay
           loop
           muted
           playsInline
         />
-        <m.div
-          style={{ opacity: fadeOut, y: moveUp }}
-          className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-center px-4"
-        >
-          <m.h2
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1 }}
-            className={`${headingFont.className} text-3xl md:text-5xl font-bold text-yellow-300`}
-          >
-            Beloved Hymn
-          </m.h2>
-          <m.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 1 }}
-            className={`${bodyFont.className} mt-4 text-lg md:text-2xl text-white max-w-2xl`}
-          >
-            "Blessed Assurance, Jesus is Mine! Oh, what a foretaste of glory
-            divine..."
-          </m.p>
-          <m.a
-            href="#"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 1 }}
-            className="mt-6 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold rounded-2xl px-8 py-4 shadow-lg transition"
-          >
-            🎵 Play Full Hymn
-          </m.a>
-        </m.div>
-      </section>
-
-      {/* Hero Section (appears after scroll) */}
-      <section className="flex flex-col items-center justify-center text-center px-6 md:px-12 py-20 max-w-4xl mx-auto">
-        <motion.h1
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1 }}
-          viewport={{ once: true }}
-          className={`${headingFont.className} text-3xl md:text-5xl font-extrabold leading-snug`}
-        >
-          Seventh Day Adventist
-          <br />
-          Maasai Mara University Church
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 1 }}
-          viewport={{ once: true }}
-          className={`${bodyFont.className} mt-6 text-lg md:text-2xl font-medium text-white/90`}
-        >
-          ✨ A vibrant community of worship, fellowship, and service ✨
-        </motion.p>
-      </section>
-
-      {/* Upcoming Event */}
-      <section className="px-6 md:px-12 max-w-3xl mx-auto pb-20">
         <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1 }}
-          viewport={{ once: true }}
-          className="bg-white/10 backdrop-blur-md rounded-3xl shadow-2xl p-8 text-center"
-        >
-          <h2
-            className={`${eventFont.className} text-3xl md:text-4xl font-bold text-yellow-300`}
-          >
-            🌟 Upcoming Event 🌟
-          </h2>
-          <p
-            className={`${bodyFont.className} mt-4 text-lg md:text-xl text-white`}
-          >
-            **Campus Revival Week**
-            <br />
-            August 25th – 31st, 2025
-          </p>
-          <p className={`${bodyFont.className} mt-2 text-white/80`}>
-            Speaker: Pastor John Doe <br />
-            Venue: Main Auditorium
-          </p>
-        </motion.div>
+          style={{ opacity }}
+          className="absolute inset-0 bg-[linear-gradient(90deg,rgba(21,52,41,0.88),rgba(18,48,87,0.62),rgba(24,37,31,0.28))]"
+        />
+
+        <div className="church-container relative z-10 flex min-h-[calc(92svh-6rem)] items-center">
+          <div className="max-w-3xl py-16">
+            <motion.p
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="church-kicker text-brand-gold"
+            >
+              Seventh-day Adventist Church
+            </motion.p>
+            <motion.h1
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.08, duration: 0.58 }}
+              className="mt-4 text-4xl font-semibold tracking-tight text-white sm:text-6xl"
+            >
+              Maasai Mara University SDA Church
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.16, duration: 0.58 }}
+              className="mt-5 max-w-2xl text-lg leading-8 text-brand-cream/88"
+            >
+              A Christ-centered campus fellowship for worship, discipleship,
+              service, and shared hope in Narok.
+            </motion.p>
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.24, duration: 0.58 }}
+              className="mt-8 flex flex-wrap gap-3"
+            >
+              <Link href="/events" className="church-button-accent">
+                View Events
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link href="/resources/sermons" className="church-button-secondary">
+                Sermons
+              </Link>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-brand-line bg-brand-cream">
+        <div className="church-container grid gap-4 py-6 md:grid-cols-3">
+          <Highlight
+            icon={<CalendarDays className="h-5 w-5" />}
+            label="Next Gathering"
+            title={nextEvent?.title ?? "Sabbath Worship"}
+            body={
+              nextEvent
+                ? formatEvent(nextEvent)
+                : "Sabbath School 9:00 AM, Divine Service 11:00 AM"
+            }
+            href="/events"
+          />
+          <Highlight
+            icon={<PlayCircle className="h-5 w-5" />}
+            label="Latest Sermon"
+            title={latestSermon?.title ?? "Sermons Archive"}
+            body={
+              latestSermon
+                ? `${latestSermon.preacher ?? "Church speaker"} • ${formatDate(
+                    latestSermon.deliveredAt
+                  )}`
+                : "Messages from recent worship services"
+            }
+            href={latestSermon?.mediaUrl || "/resources/sermons"}
+          />
+          <Highlight
+            icon={<Megaphone className="h-5 w-5" />}
+            label="Notice Board"
+            title={announcements[0]?.title ?? "Church Announcements"}
+            body={
+              announcements[0]?.body ??
+              "Updates from ministries, welfare, worship, and campus fellowship."
+            }
+            href="/resources"
+          />
+        </div>
+      </section>
+
+      <section className="church-section">
+        <div className="church-container grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+          <div>
+            <p className="church-kicker">Our Life Together</p>
+            <h2 className="church-heading mt-3">
+              Faith that has room for study, service, and belonging.
+            </h2>
+            <p className="church-copy mt-4">
+              MMU SDA Church gathers students, staff, alumni, and guests around
+              Scripture, prayer, music, outreach, and pastoral care. The site now
+              draws from church records so ministries, events, sermons, and
+              member care can grow from one database.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href="/about" className="church-button">
+                About The Church
+              </Link>
+              <Link href="/contact" className="church-button-secondary">
+                Contact Leaders
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {[
+              ["Worship", "Sabbath services, music ministry, and vespers."],
+              ["Discipleship", "Bible study, small groups, and prayer teams."],
+              ["Service", "Welfare, visitations, outreach, and campus care."],
+              ["Stewardship", "Giving, ministry planning, and transparent records."],
+            ].map(([title, body]) => (
+              <article key={title} className="church-card-plain p-5">
+                <h3 className="font-semibold text-brand-ink">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-brand-muted">{body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
       </section>
     </main>
   );
+}
+
+function Highlight({
+  icon,
+  label,
+  title,
+  body,
+  href,
+}: {
+  icon: ReactNode;
+  label: string;
+  title: string;
+  body: string;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="grid gap-2 rounded-lg border border-brand-line bg-white/70 p-4 transition hover:border-brand-gold hover:bg-white"
+    >
+      <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-brand-gold-dark">
+        {icon}
+        {label}
+      </span>
+      <span className="font-semibold text-brand-ink">{title}</span>
+      <span className="line-clamp-2 text-sm leading-6 text-brand-muted">
+        {body}
+      </span>
+    </Link>
+  );
+}
+
+function formatEvent(event: LandingEvent) {
+  const date = formatDate(event.start);
+  const time = new Intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(event.start));
+  return [date, time, event.location].filter(Boolean).join(" • ");
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  }).format(new Date(value));
 }

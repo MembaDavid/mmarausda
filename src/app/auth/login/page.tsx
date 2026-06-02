@@ -1,85 +1,42 @@
 "use client";
 
-import { motion } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
 import { useFormStatus } from "react-dom";
+import { LogIn } from "lucide-react";
 import { login } from "../actions";
-
-/** Accent + theme colors (Tailwind arbitrary values) */
-const BG_GRADIENT =
-  "bg-gradient-to-br from-[#0b1f3a] via-[#0f2e5a] to-[#1e3a8a]"; // navy → deep blue → blue-800
-const CARD_BG =
-  "bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/15";
-const TEXT_MAIN = "text-white";
-const TEXT_SOFT = "text-blue-100";
-const INPUT_BG = "bg-white/15";
-const INPUT_PLACEHOLDER = "placeholder-blue-200";
-const FOCUS_RING = "focus:ring-2 focus:ring-[#d4af37] focus:border-[#d4af37]"; // gold
-const LINK_ACCENT = "text-[#f0c33c]"; // gold
-const BTN_GRADIENT = "bg-gradient-to-r from-[#f0c33c] to-[#d4af37]"; // gold tones
-const BTN_SHADOW_HOVER = "0px 0px 18px rgba(212,175,55,0.55)"; // gold glow
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+
   return (
-    <motion.button
-      type="submit"
-      whileHover={{
-        scale: pending ? 1 : 1.03,
-        boxShadow: pending ? "none" : BTN_SHADOW_HOVER,
-      }}
-      whileTap={{ scale: pending ? 1 : 0.96 }}
-      disabled={pending}
-      className={`w-full ${BTN_GRADIENT} ${TEXT_MAIN} py-3 rounded-lg font-semibold shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed`}
-    >
-      {pending ? "Signing in…" : "Log In"}
-    </motion.button>
+    <button type="submit" disabled={pending} className="church-button w-full">
+      <LogIn className="h-4 w-4" />
+      {pending ? "Signing in" : "Log in"}
+    </button>
   );
 }
 
 export default function LoginPage() {
   return (
-    <div
-      className={`min-h-screen flex items-center justify-center ${BG_GRADIENT} p-6`}
-    >
-      <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        whileHover={{ scale: 1.02 }}
-        className={`w-full max-w-md ${CARD_BG} p-8`}
-      >
-        <motion.h1
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className={`text-3xl font-bold ${TEXT_MAIN} text-center mb-6 tracking-tight`}
-        >
-          Welcome Back 👋
-        </motion.h1>
+    <main className="church-page grid min-h-screen place-items-center px-4 py-12">
+      <section className="church-card w-full max-w-md p-6">
+        <div className="text-center">
+          <span className="mx-auto grid h-14 w-14 place-items-center rounded-lg bg-white">
+            <Image src="/sda_logo.svg" alt="SDA logo" width={42} height={42} />
+          </span>
+          <h1 className="mt-5 text-3xl font-semibold tracking-tight text-brand-ink">
+            Welcome back
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-brand-muted">
+            Sign in to continue to MMU SDA Church.
+          </p>
+        </div>
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className={`${TEXT_SOFT} text-center mb-8`}
-        >
-          Sign in to continue to your account
-        </motion.p>
-
-        {/* Login Form */}
-        <form action={login} className="flex flex-col space-y-6">
-          {/* Where to go after login */}
+        <form action={login} className="mt-7 grid gap-4">
           <input type="hidden" name="next" value="/onboarding" />
-
-          {/* Email */}
-          <div>
-            <label
-              htmlFor="email"
-              className={`block text-sm font-medium ${TEXT_SOFT} mb-1`}
-            >
-              Email
-            </label>
+          <label>
+            <span className="church-label">Email</span>
             <input
               id="email"
               name="email"
@@ -87,50 +44,34 @@ export default function LoginPage() {
               required
               autoComplete="email"
               placeholder="you@example.com"
-              className={`w-full rounded-lg px-4 py-3 ${INPUT_BG} ${TEXT_MAIN} ${INPUT_PLACEHOLDER}
-                focus:outline-none ${FOCUS_RING} transition duration-300`}
+              className="church-input"
             />
-          </div>
-
-          {/* Password */}
-          <div>
-            <label
-              htmlFor="password"
-              className={`block text-sm font-medium ${TEXT_SOFT} mb-1`}
-            >
-              Password
-            </label>
+          </label>
+          <label>
+            <span className="church-label">Password</span>
             <input
               id="password"
               name="password"
               type="password"
               required
               autoComplete="current-password"
-              placeholder="••••••••"
-              className={`w-full rounded-lg px-4 py-3 ${INPUT_BG} ${TEXT_MAIN} ${INPUT_PLACEHOLDER}
-                focus:outline-none ${FOCUS_RING} transition duration-300`}
+              placeholder="Your password"
+              className="church-input"
             />
-          </div>
-
+          </label>
           <SubmitButton />
         </form>
 
-        {/* Footer */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-6 text-center text-sm text-blue-200"
-        >
-          Don’t have an account?{" "}
+        <p className="mt-6 text-center text-sm text-brand-muted">
+          Need an account?{" "}
           <Link
             href="/auth/register"
-            className={`${LINK_ACCENT} font-medium hover:underline`}
+            className="font-semibold text-brand-forest-dark hover:underline"
           >
-            Create one
+            Register
           </Link>
-        </motion.div>
-      </motion.div>
-    </div>
+        </p>
+      </section>
+    </main>
   );
 }

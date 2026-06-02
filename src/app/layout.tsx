@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SDA Church Maasai Mara University",
+  title: "Maasai Mara University SDA Church",
   description:
-    "Welcome to the official website of Maasai Mara University SDA Church. Discover our worship services, events, ministries, and resources dedicated to spiritual growth and community engagement.",
+    "Worship services, events, ministries, sermons, and member care for Maasai Mara University Seventh-day Adventist Church.",
 };
 
 export default function RootLayout({
@@ -25,9 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
       </body>
     </html>

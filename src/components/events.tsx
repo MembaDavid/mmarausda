@@ -1,163 +1,79 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
-  FiCalendar,
-  FiMapPin,
-  FiClock,
-  FiSearch,
-  FiFilter,
-  FiChevronRight,
-  FiChevronLeft,
-  FiTag,
-  FiUsers,
-  FiDownload,
-  FiBell,
-} from "react-icons/fi";
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  MapPin,
+  Search,
+  Tag,
+  Users,
+} from "lucide-react";
 
-// --- Types ---
 export type EventItem = {
   id: string;
   title: string;
-  description?: string;
-  start: string; // ISO
-  end?: string; // ISO
-  location?: string;
-  cover?: string; // image url
-  category?:
-    | "Worship"
-    | "Youth"
-    | "Choir"
-    | "Prayer"
-    | "Outreach"
-    | "Training"
-    | "Fundraising"
-    | "Other";
+  description?: string | null;
+  start: string;
+  end?: string | null;
+  location?: string | null;
+  coverUrl?: string | null;
+  category?: string | null;
   rsvpCount?: number;
 };
 
-// --- Mock Data (replace with real fetch from /api/events) ---
-const mockEvents: EventItem[] = [
-  {
-    id: "1",
-    title: "Sabbath Divine Service",
-    description:
-      "Join us for a spirit-filled worship service with choir ministration and sermon.",
-    start: new Date().toISOString(),
-    end: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-    location: "Main Sanctuary, Campus Chapel",
-    cover:
-      "https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1400&auto=format&fit=crop",
-    category: "Worship",
-    rsvpCount: 132,
-  },
-  {
-    id: "2",
-    title: "Youth AY Program – Talent Evening",
-    description:
-      "Showcase your gifts: music, poetry, spoken word. Invite a friend!",
-    start: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-    end: new Date(
-      Date.now() + 2 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000
-    ).toISOString(),
-    location: "Student Centre Hall",
-    cover:
-      "https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=1400&auto=format&fit=crop",
-    category: "Youth",
-    rsvpCount: 74,
-  },
-  {
-    id: "3",
-    title: "Midweek Prayer – Revival Night",
-    description: "An hour of prayer and testimonies. Come expectant.",
-    start: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
-    location: "Room B12, Humanities Block",
-    cover:
-      "https://images.unsplash.com/photo-1519681398087-2e3f71d67e0e?q=80&w=1400&auto=format&fit=crop",
-    category: "Prayer",
-    rsvpCount: 51,
-  },
-  {
-    id: "4",
-    title: "Community Outreach – Narok Town",
-    description: "Door-to-door ministry and food drive with the Welfare team.",
-    start: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(),
-    end: new Date(
-      Date.now() + 6 * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000
-    ).toISOString(),
-    location: "Welfare Office → Narok Town",
-    cover:
-      "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=1400&auto=format&fit=crop",
-    category: "Outreach",
-    rsvpCount: 89,
-  },
-  {
-    id: "5",
-    title: "Choir Rehearsal – Special Anthem",
-    description: "Preparations for next Sabbath's anthem and hymn medley.",
-    start: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    end: new Date(
-      Date.now() - 3 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000
-    ).toISOString(),
-    location: "Music Room 2",
-    cover:
-      "https://images.unsplash.com/photo-1507838153414-b4b713384a76?q=80&w=1400&auto=format&fit=crop",
-    category: "Choir",
-    rsvpCount: 37,
-  },
-];
+const fallbackCover =
+  "https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1400&auto=format&fit=crop";
 
-// --- Helpers ---
-function formatRange(startISO?: string, endISO?: string) {
+function formatRange(startISO?: string, endISO?: string | null) {
   if (!startISO) return "TBA";
   const start = new Date(startISO);
   const end = endISO ? new Date(endISO) : undefined;
-  const fmtDate = new Intl.DateTimeFormat(undefined, {
+  const date = new Intl.DateTimeFormat(undefined, {
     weekday: "short",
     day: "2-digit",
     month: "short",
     year: "numeric",
   }).format(start);
-  const fmtTime = new Intl.DateTimeFormat(undefined, {
+  const startTime = new Intl.DateTimeFormat(undefined, {
     hour: "2-digit",
     minute: "2-digit",
   }).format(start);
-  const fmtEnd = end
+  const endTime = end
     ? new Intl.DateTimeFormat(undefined, {
         hour: "2-digit",
         minute: "2-digit",
       }).format(end)
     : undefined;
-  return fmtEnd
-    ? `${fmtDate} · ${fmtTime} – ${fmtEnd}`
-    : `${fmtDate} · ${fmtTime}`;
+
+  return endTime ? `${date} • ${startTime} - ${endTime}` : `${date} • ${startTime}`;
 }
 
-function toICS(e: EventItem) {
-  // Minimal .ics content
-  const dtStart =
-    new Date(e.start).toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-  const dtEnd = e.end
-    ? new Date(e.end).toISOString().replace(/[-:]/g, "").split(".")[0] + "Z"
-    : new Date(new Date(e.start).getTime() + 60 * 60 * 1000)
-        .toISOString()
-        .replace(/[-:]/g, "")
-        .split(".")[0] + "Z";
+function toICS(event: EventItem) {
+  const start =
+    new Date(event.start).toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const end =
+    (event.end
+      ? new Date(event.end)
+      : new Date(new Date(event.start).getTime() + 60 * 60 * 1000)
+    )
+      .toISOString()
+      .replace(/[-:]/g, "")
+      .split(".")[0] + "Z";
   const body = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Glorious Events//EN",
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
+    "PRODID:-//MMU SDA Church//Events//EN",
     "BEGIN:VEVENT",
-    `UID:${e.id}@glorious-events`,
-    `DTSTAMP:${dtStart}`,
-    `DTSTART:${dtStart}`,
-    `DTEND:${dtEnd}`,
-    `SUMMARY:${(e.title || "Event").replace(/\n/g, " ")}`,
-    `DESCRIPTION:${(e.description || "").replace(/\n/g, " ")}`,
-    e.location ? `LOCATION:${e.location.replace(/\n/g, " ")}` : "",
+    `UID:${event.id}@mmu-sda`,
+    `DTSTAMP:${start}`,
+    `DTSTART:${start}`,
+    `DTEND:${end}`,
+    `SUMMARY:${(event.title || "Church Event").replace(/\n/g, " ")}`,
+    `DESCRIPTION:${(event.description || "").replace(/\n/g, " ")}`,
+    event.location ? `LOCATION:${event.location.replace(/\n/g, " ")}` : "",
     "END:VEVENT",
     "END:VCALENDAR",
   ]
@@ -166,339 +82,239 @@ function toICS(e: EventItem) {
 
   const blob = new Blob([body], { type: "text/calendar;charset=utf-8" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${
-    e.title?.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "event"
-  }.ics`;
-  a.click();
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `${event.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.ics`;
+  anchor.click();
   URL.revokeObjectURL(url);
 }
 
-const categories: Array<EventItem["category"] | "All"> = [
-  "All",
-  "Worship",
-  "Youth",
-  "Choir",
-  "Prayer",
-  "Outreach",
-  "Training",
-  "Fundraising",
-  "Other",
-];
-
-const heroGradient =
-  "bg-[radial-gradient(1200px_800px_at_50%_-10%,rgba(59,130,246,0.25),transparent_70%),radial-gradient(800px_400px_at_80%_10%,rgba(245,158,11,0.22),transparent_70%),radial-gradient(600px_400px_at_20%_0%,rgba(147,197,253,0.18),transparent_70%)]";
-
-const spring = { type: "spring", stiffness: 120, damping: 14 } as const;
-
 export default function EventsPage({
-  initialEvents,
+  initialEvents = [],
 }: {
   initialEvents?: EventItem[];
 }) {
   const [query, setQuery] = useState("");
-  const [activeCat, setActiveCat] =
-    useState<(typeof categories)[number]>("All");
-  const [monthOffset, setMonthOffset] = useState(0);
+  const [activeCategory, setActiveCategory] = useState("All");
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
+  const [monthOffset, setMonthOffset] = useState(0);
 
-  // Replace with real data (SSR fetch) if provided
-  const events = (initialEvents?.length ? initialEvents : mockEvents)
-    .slice()
-    .sort((a, b) => +new Date(a.start) - +new Date(b.start));
+  const events = useMemo(
+    () =>
+      initialEvents
+        .slice()
+        .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()),
+    [initialEvents]
+  );
 
-  const now = new Date();
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return events.filter((e) => {
-      const isPast = new Date(e.start) < now;
-      if (tab === "upcoming" && isPast) return false;
-      if (tab === "past" && !isPast) return false;
-      const catOk = activeCat === "All" || e.category === activeCat;
-      const qOk =
-        !q ||
-        e.title.toLowerCase().includes(q) ||
-        (e.description || "").toLowerCase().includes(q) ||
-        (e.location || "").toLowerCase().includes(q);
-      // Month filter
-      const m = new Date();
-      m.setMonth(m.getMonth() + monthOffset, 1);
-      m.setHours(0, 0, 0, 0);
-      const mEnd = new Date(m);
-      mEnd.setMonth(m.getMonth() + 1);
-      const d = new Date(e.start);
-      const inMonth = d >= m && d < mEnd;
-      return catOk && qOk && inMonth;
-    });
-  }, [events, query, activeCat, tab, monthOffset, now]);
+  const categories = useMemo(() => {
+    const found = Array.from(
+      new Set(
+        events
+          .map((event) => event.category)
+          .filter((category): category is string => Boolean(category))
+      )
+    );
+    return ["All", ...found];
+  }, [events]);
 
   const monthLabel = useMemo(() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() + monthOffset);
+    const date = new Date();
+    date.setMonth(date.getMonth() + monthOffset);
     return new Intl.DateTimeFormat(undefined, {
       month: "long",
       year: "numeric",
-    }).format(d);
+    }).format(date);
   }, [monthOffset]);
 
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Hero */}
-      <section className={`relative overflow-hidden ${heroGradient}`}>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mx-auto max-w-7xl px-4 pt-20 pb-12 sm:pt-28 sm:pb-16"
-        >
-          <motion.h1
-            layout
-            transition={spring}
-            className="text-4xl sm:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-sky-300 to-amber-300 drop-shadow"
-          >
-            Glorious Events
-          </motion.h1>
-          <p className="mt-4 max-w-2xl text-slate-300 leading-relaxed">
-            Discover worship services, youth programs, outreach, and more.
-            Search, filter, and add to your calendar in one click.
-          </p>
+  const filtered = useMemo(() => {
+    const now = Date.now();
+    const monthStart = new Date();
+    monthStart.setMonth(monthStart.getMonth() + monthOffset, 1);
+    monthStart.setHours(0, 0, 0, 0);
+    const monthEnd = new Date(monthStart);
+    monthEnd.setMonth(monthStart.getMonth() + 1);
+    const search = query.trim().toLowerCase();
 
-          {/* Controls */}
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            {/* Search */}
-            <label className="relative flex items-center gap-2 rounded-2xl bg-white/5 ring-1 ring-white/10 px-4 py-3">
-              <FiSearch className="shrink-0" />
+    return events.filter((event) => {
+      const startsAt = new Date(event.start).getTime();
+      const isPast = startsAt < now;
+      const eventDate = new Date(event.start);
+      const matchesTab = tab === "past" ? isPast : !isPast;
+      const matchesMonth = eventDate >= monthStart && eventDate < monthEnd;
+      const matchesCategory =
+        activeCategory === "All" || event.category === activeCategory;
+      const matchesSearch =
+        !search ||
+        event.title.toLowerCase().includes(search) ||
+        (event.description ?? "").toLowerCase().includes(search) ||
+        (event.location ?? "").toLowerCase().includes(search);
+
+      return matchesTab && matchesMonth && matchesCategory && matchesSearch;
+    });
+  }, [activeCategory, events, monthOffset, query, tab]);
+
+  return (
+    <main className="church-page pt-20">
+      <section className="border-b border-brand-line bg-brand-cream">
+        <div className="church-container py-14">
+          <p className="church-kicker">Church Calendar</p>
+          <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h1 className="text-4xl font-semibold tracking-tight text-brand-ink sm:text-5xl">
+                Events and services
+              </h1>
+              <p className="church-copy mt-3 max-w-2xl">
+                Worship services, Bible studies, ministry programs, outreach,
+                and campus fellowship drawn from the church database.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg border border-brand-line bg-white/75 px-2 py-2">
+              <button
+                className="grid h-9 w-9 place-items-center rounded-md text-brand-muted hover:bg-brand-mist hover:text-brand-ink"
+                onClick={() => setMonthOffset((value) => value - 1)}
+                aria-label="Previous month"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="min-w-36 text-center text-sm font-semibold text-brand-ink">
+                {monthLabel}
+              </span>
+              <button
+                className="grid h-9 w-9 place-items-center rounded-md text-brand-muted hover:bg-brand-mist hover:text-brand-ink"
+                onClick={() => setMonthOffset((value) => value + 1)}
+                aria-label="Next month"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-8 grid gap-3 lg:grid-cols-[1fr_auto]">
+            <label className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" />
               <input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search events, places, people…"
-                className="w-full bg-transparent outline-none placeholder:text-slate-400"
+                onChange={(event) => setQuery(event.target.value)}
+                className="church-input pl-10"
+                placeholder="Search event, place, or description"
               />
             </label>
 
-            {/* Categories */}
-            <div className="flex gap-2 overflow-x-auto sm:overflow-visible flex-nowrap sm:flex-wrap items-center content-start py-1">
-              {categories.map((c) => (
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  key={c}
-                  onClick={() => setActiveCat(c)}
-                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm whitespace-nowrap shrink-0 border ${
-                    activeCat === c
-                      ? "bg-amber-500/15 border-amber-400/40 text-amber-200"
-                      : "bg-white/5 border-white/10 hover:bg-white/10"
-                  } transition`}
-                  aria-pressed={activeCat === c}
+            <div className="flex flex-wrap gap-2">
+              {(["upcoming", "past"] as const).map((value) => (
+                <button
+                  key={value}
+                  onClick={() => setTab(value)}
+                  className={
+                    tab === value ? "church-button" : "church-button-secondary"
+                  }
                 >
-                  <FiTag /> {c}
-                </motion.button>
+                  {value === "upcoming" ? "Upcoming" : "Past"}
+                </button>
               ))}
             </div>
-
-            {/* Tabs & Month Switcher */}
-            <div className="flex items-stretch gap-2 justify-end">
-              <div className="inline-flex rounded-xl overflow-hidden border border-white/10">
-                <button
-                  className={`px-4 py-2 text-sm ${
-                    tab === "upcoming" ? "bg-white/10" : "bg-transparent"
-                  }`}
-                  onClick={() => setTab("upcoming")}
-                >
-                  Upcoming
-                </button>
-                <button
-                  className={`px-4 py-2 text-sm ${
-                    tab === "past" ? "bg-white/10" : "bg-transparent"
-                  }`}
-                  onClick={() => setTab("past")}
-                >
-                  Past
-                </button>
-              </div>
-              <div className="ml-auto flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-2">
-                <button
-                  className="p-2 hover:bg-white/10 rounded-lg"
-                  onClick={() => setMonthOffset((m) => m - 1)}
-                  aria-label="Previous month"
-                >
-                  <FiChevronLeft />
-                </button>
-                <div className="px-2 text-sm flex items-center gap-2">
-                  <FiCalendar /> {monthLabel}
-                </div>
-                <button
-                  className="p-2 hover:bg-white/10 rounded-lg"
-                  onClick={() => setMonthOffset((m) => m + 1)}
-                  aria-label="Next month"
-                >
-                  <FiChevronRight />
-                </button>
-              </div>
-            </div>
           </div>
-        </motion.div>
 
-        {/* Decorative orbs */}
-        <motion.div
-          aria-hidden
-          className="pointer-events-none absolute -top-24 right-0 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl"
-          animate={{ x: [0, -10, 10, 0], y: [0, 10, -10, 0] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-20 left-10 h-72 w-72 rounded-full bg-amber-400/25 blur-3xl"
-          animate={{ x: [0, 12, -12, 0], y: [0, -8, 8, 0] }}
-          transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
-        />
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+            {categories.map((category) => (
+              <button
+                key={category}
+                onClick={() => setActiveCategory(category)}
+                className={[
+                  "inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition",
+                  activeCategory === category
+                    ? "border-brand-gold bg-brand-gold text-brand-ink"
+                    : "border-brand-line bg-white/70 text-brand-muted hover:bg-brand-mist hover:text-brand-ink",
+                ].join(" ")}
+              >
+                <Tag className="h-4 w-4" />
+                {labelCategory(category)}
+              </button>
+            ))}
+          </div>
+        </div>
       </section>
 
-      {/* Grid */}
-      <section className="mx-auto max-w-7xl px-4 py-10">
-        <AnimatePresence initial={false}>
+      <section className="church-section">
+        <div className="church-container">
           {filtered.length === 0 ? (
-            <motion.div
-              key="empty"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="flex flex-col items-center justify-center rounded-3xl border border-white/10 bg-white/5 p-12 text-center"
-            >
-              <FiBell className="text-3xl mb-3" />
-              <h3 className="text-xl font-semibold">
-                No events match your filters
-              </h3>
-              <p className="mt-2 max-w-md text-slate-400">
-                Try removing some filters, or jump to another month.
+            <div className="church-card mx-auto max-w-2xl p-8 text-center">
+              <CalendarDays className="mx-auto h-10 w-10 text-brand-gold-dark" />
+              <h2 className="mt-4 text-2xl font-semibold text-brand-ink">
+                No events found
+              </h2>
+              <p className="church-copy mt-2">
+                Try a different month, category, or search term. Admins can add
+                events from the dashboard once the database is seeded.
               </p>
-            </motion.div>
+            </div>
           ) : (
-            <motion.ul
-              key="list"
-              layout
-              className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
-            >
-              {filtered.map((e, i) => (
-                <motion.li
-                  layout
-                  key={e.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: i * 0.04 }}
-                >
-                  <EventCard e={e} />
-                </motion.li>
+            <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {filtered.map((event) => (
+                <li key={event.id}>
+                  <EventCard event={event} />
+                </li>
               ))}
-            </motion.ul>
+            </ul>
           )}
-        </AnimatePresence>
-
-        {/* Footer note */}
-        <div className="mt-10 flex items-center justify-center text-slate-400 text-sm">
-          Want your ministry's event listed? Email the Church Office.
         </div>
       </section>
-    </div>
+    </main>
   );
 }
 
-function EventCard({ e }: { e: EventItem }) {
+function EventCard({ event }: { event: EventItem }) {
   return (
-    <motion.article
-      whileHover={{ translateY: -4 }}
-      className="group relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-white/10 to-white/5"
-    >
-      <div className="relative h-48 w-full overflow-hidden">
+    <article className="church-card h-full overflow-hidden">
+      <div className="relative h-44 w-full overflow-hidden">
         <img
-          src={
-            e.cover ||
-            "https://images.unsplash.com/photo-1520975922373-3b4dfe979e76?w=1200"
-          }
-          alt={e.title}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          src={event.coverUrl || fallbackCover}
+          alt={event.title}
+          className="h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent" />
-        <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full bg-slate-950/60 px-3 py-1 text-xs font-medium ring-1 ring-white/10">
-          <FiTag /> {e.category || "Event"}
+        <div className="absolute left-3 top-3 rounded-lg bg-brand-forest/88 px-2.5 py-1 text-xs font-semibold text-brand-cream">
+          {labelCategory(event.category ?? "Event")}
         </div>
       </div>
-
-      <div className="p-5">
-        <h3 className="text-lg font-bold leading-snug line-clamp-2">
-          {e.title}
-        </h3>
-        <p className="mt-2 text-sm text-slate-300 line-clamp-2">
-          {e.description}
+      <div className="flex h-[calc(100%-11rem)] flex-col p-5">
+        <h2 className="text-lg font-semibold leading-snug text-brand-ink">
+          {event.title}
+        </h2>
+        <p className="mt-2 line-clamp-2 text-sm leading-6 text-brand-muted">
+          {event.description || "More details will be shared by the ministry team."}
         </p>
-
-        <div className="mt-4 space-y-2 text-sm">
-          <div className="flex items-center gap-2 text-slate-300">
-            <FiCalendar className="shrink-0" /> {formatRange(e.start, e.end)}
-          </div>
-          {e.location && (
-            <div className="flex items-center gap-2 text-slate-300">
-              <FiMapPin className="shrink-0" /> {e.location}
-            </div>
-          )}
-          <div className="flex items-center gap-2 text-slate-300">
-            <FiUsers className="shrink-0" /> {e.rsvpCount || 0} going
-          </div>
+        <div className="mt-4 grid gap-2 text-sm text-brand-muted">
+          <span className="flex gap-2">
+            <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-brand-gold-dark" />
+            {formatRange(event.start, event.end)}
+          </span>
+          {event.location ? (
+            <span className="flex gap-2">
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand-gold-dark" />
+              {event.location}
+            </span>
+          ) : null}
+          <span className="flex gap-2">
+            <Users className="mt-0.5 h-4 w-4 shrink-0 text-brand-gold-dark" />
+            {event.rsvpCount ?? 0} registered
+          </span>
         </div>
-
-        <div className="mt-5 flex items-center gap-2">
-          <button
-            onClick={() => toICS(e)}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10"
-          >
-            <FiDownload /> Add to calendar
+        <div className="mt-auto pt-5">
+          <button onClick={() => toICS(event)} className="church-button-secondary">
+            <Download className="h-4 w-4" />
+            Calendar
           </button>
-          <a
-            href={`#/events/${e.id}`}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-amber-500/15 px-3 py-2 text-sm text-amber-300 hover:bg-amber-500/20"
-          >
-            <FiClock /> Details
-          </a>
         </div>
       </div>
-    </motion.article>
+    </article>
   );
 }
 
-/*
---- Server-side data (optional) ---
-// If you prefer SSR in Next.js App Router, create app/events/page.tsx as a Server Component:
-
-// app/events/page.tsx
-// import EventsClient from "./EventsClient";
-//
-// export default async function Page() {
-//   const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/events`, { cache: "no-store" });
-//   const events: EventItem[] = await res.json();
-//   return <EventsClient initialEvents={events} />;
-// }
-//
-// Then put the above component into app/events/EventsClient.tsx with "use client" and export default.
-
---- API shape (example) ---
-// GET /api/events -> EventItem[]
-// GET /api/events/[id] -> EventItem
-// POST /api/events -> create (admin only)
-// PATCH /api/events/[id] -> update (admin only)
-
---- Prisma (example fields) ---
-// model Event {
-//   id          String   @id @default(cuid())
-//   title       String
-//   description String?
-//   start       DateTime
-//   end         DateTime?
-//   location    String?
-//   cover       String?
-//   category    String?
-//   rsvpCount   Int      @default(0)
-//   createdAt   DateTime @default(now())
-//   updatedAt   DateTime @updatedAt
-// }
-*/
+function labelCategory(value: string) {
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}

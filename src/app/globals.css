@@ -1,26 +1,185 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f3e8;
+  --foreground: #18251f;
+  --brand-forest: #1f4d3a;
+  --brand-forest-dark: #153429;
+  --brand-navy: #123057;
+  --brand-sky: #dcebf1;
+  --brand-gold: #c79a2b;
+  --brand-gold-dark: #9b6f13;
+  --brand-cream: #fffaf0;
+  --brand-mist: #edf3ee;
+  --brand-ink: #18251f;
+  --brand-muted: #607167;
+  --brand-line: #d8d4c8;
+  --surface: #fffaf0;
+  --surface-strong: #ffffff;
+  --radius-ui: 0.5rem;
+  --shadow-soft: 0 18px 45px rgba(24, 37, 31, 0.1);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-brand-forest: var(--brand-forest);
+  --color-brand-forest-dark: var(--brand-forest-dark);
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-sky: var(--brand-sky);
+  --color-brand-gold: var(--brand-gold);
+  --color-brand-gold-dark: var(--brand-gold-dark);
+  --color-brand-cream: var(--brand-cream);
+  --color-brand-mist: var(--brand-mist);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-muted: var(--brand-muted);
+  --color-brand-line: var(--brand-line);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
+  min-height: 100vh;
+  background:
+    linear-gradient(180deg, rgba(220, 235, 241, 0.7), transparent 28rem),
+    var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+::selection {
+  background: rgba(199, 154, 43, 0.28);
+  color: var(--brand-ink);
+}
+
+a {
+  text-underline-offset: 0.18em;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.church-page {
+  min-height: 100vh;
+  background:
+    linear-gradient(180deg, rgba(237, 243, 238, 0.92), rgba(247, 243, 232, 0.96)),
+    var(--background);
+  color: var(--brand-ink);
+}
+
+.church-container {
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+
+.church-section {
+  @apply py-14 sm:py-16 lg:py-20;
+}
+
+.church-kicker {
+  @apply text-xs font-semibold uppercase tracking-[0.18em] text-brand-gold-dark;
+}
+
+.church-heading {
+  @apply text-3xl font-semibold tracking-tight text-brand-ink sm:text-4xl;
+}
+
+.church-copy {
+  @apply leading-7 text-brand-muted;
+}
+
+.church-card {
+  border: 1px solid var(--brand-line);
+  border-radius: var(--radius-ui);
+  background: rgba(255, 250, 240, 0.88);
+  box-shadow: var(--shadow-soft);
+}
+
+.church-card-plain {
+  border: 1px solid var(--brand-line);
+  border-radius: var(--radius-ui);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.church-button {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-55;
+  background: var(--brand-forest);
+  color: var(--brand-cream);
+}
+
+.church-button:hover {
+  background: var(--brand-forest-dark);
+}
+
+.church-button-accent {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-55;
+  background: var(--brand-gold);
+  color: var(--brand-ink);
+}
+
+.church-button-accent:hover {
+  background: var(--brand-gold-dark);
+  color: var(--brand-cream);
+}
+
+.church-button-secondary {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-55;
+  border: 1px solid var(--brand-line);
+  background: rgba(255, 250, 240, 0.75);
+  color: var(--brand-forest-dark);
+}
+
+.church-button-secondary:hover {
+  background: var(--brand-mist);
+}
+
+.church-input {
+  @apply w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition;
+  border-color: var(--brand-line);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--brand-ink);
+}
+
+.church-input::placeholder {
+  color: rgba(96, 113, 103, 0.72);
+}
+
+.church-input:focus {
+  border-color: var(--brand-gold);
+  box-shadow: 0 0 0 3px rgba(199, 154, 43, 0.22);
+}
+
+.church-label {
+  @apply mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-brand-muted;
+}
+
+.church-badge {
+  @apply inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold;
+  border-color: var(--brand-line);
+  background: rgba(237, 243, 238, 0.92);
+  color: var(--brand-forest-dark);
+}
+
+.church-table {
+  @apply min-w-full text-sm;
+}
+
+.church-table th {
+  @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.12em] text-brand-muted;
+}
+
+.church-table td {
+  @apply border-t px-4 py-3 align-top;
+  border-color: var(--brand-line);
 }

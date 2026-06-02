@@ -1,434 +1,235 @@
 "use client";
 
-import * as motion from "motion/react-client";
 import Image from "next/image";
 import Link from "next/link";
+import type { ReactNode } from "react";
+import { motion } from "motion/react";
+import { BookOpen, HeartHandshake, Music, Users } from "lucide-react";
 
-// Color palette (kept inline for easy edits)
-// Navy: #0B1A33  | Deep Blue: #0F2A5F | Off‑White: #F8FAFC | Dark Yellow (Gold): #B38600
+const values = [
+  {
+    title: "Biblical Faith",
+    body: "Scripture shapes worship, teaching, service, and everyday decisions.",
+  },
+  {
+    title: "Campus Fellowship",
+    body: "Students, staff, alumni, and guests find a shared spiritual home.",
+  },
+  {
+    title: "Prayerful Care",
+    body: "Prayer requests, visitations, and welfare work are handled with dignity.",
+  },
+  {
+    title: "Mission",
+    body: "We serve Narok and the university community with the hope of Christ.",
+  },
+];
 
-const ACCENT = "#B38600"; // dark yellow close to gold
+const ministries = [
+  ["Worship & Music", "Choir, praise teams, Sabbath programming, and vespers."],
+  ["Youth & AMO/ALO", "Campus discipleship, mentorship, and fellowship groups."],
+  ["Welfare & Visitations", "Pastoral care, practical support, and member follow-up."],
+  ["Media & Communications", "Sermons, announcements, livestream support, and archives."],
+  ["Bible Study", "Weekly studies, Sabbath School, and small group resources."],
+  ["Treasury", "Offerings, funds, pledges, and stewardship reporting."],
+];
+
+const leaders = [
+  ["Pastoral Team", "Spiritual nurture, preaching, visitation, and counseling."],
+  ["Elders Council", "Worship coordination, doctrine, and member care."],
+  ["Ministry Leads", "Operational planning for outreach, music, youth, and welfare."],
+];
 
 export default function AboutPage() {
   return (
-    <main className="min-h-screen bg-[#0B1A33] text-white">
-      {/* Hero */}
-      <section className="relative overflow-hidden">
-        <BackgroundOrbs />
-        <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
+    <main className="church-page pt-20">
+      <section className="border-b border-brand-line bg-brand-cream">
+        <div className="church-container grid gap-10 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="flex flex-col items-center text-center"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45 }}
           >
-            <div className="mb-8 rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
-              <Image
-                src="/sda_logo.svg"
-                alt="Church logo"
-                width={84}
-                height={84}
-                priority
-              />
-            </div>
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">
-              Seventh-day Adventist Church
+            <p className="church-kicker">About MMU SDA</p>
+            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-brand-ink sm:text-5xl">
+              A church family for worship, learning, and service.
             </h1>
-            <p className="mx-auto mt-4 max-w-2xl text-balance text-white/80">
-              Loving God. Serving people. Growing together in Christ.
+            <p className="church-copy mt-5 max-w-2xl">
+              Maasai Mara University SDA Church exists to proclaim Christ,
+              nurture believers, and serve the campus and Narok community with
+              humility, excellence, and practical love.
             </p>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <Pill>Faith • Fellowship • Mission</Pill>
-              <Pill>Community • Discipleship</Pill>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link href="/events" className="church-button">
+                Worship With Us
+              </Link>
+              <Link href="/contact" className="church-button-secondary">
+                Reach The Office
+              </Link>
             </div>
           </motion.div>
-        </div>
-      </section>
 
-      {/* Mission / Vision */}
-      <section className="bg-[#0F2A5F]">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-          <div className="grid gap-10 md:grid-cols-2">
-            <InfoCard
-              title="Our Mission"
-              subtitle="Why we exist"
-              description="To proclaim the everlasting gospel of Jesus Christ, nurture believers, and minister to the needs of our community in love and humility."
-            />
-            <InfoCard
-              title="Our Vision"
-              subtitle="Where we are going"
-              description="A Christ‑centered church where every person belongs, grows, and serves — shining the light of hope to the world."
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Core Values */}
-      <section className="relative">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-          <motion.h2
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="mb-8 text-center text-2xl font-semibold sm:text-3xl"
-          >
-            Our Core Values
-          </motion.h2>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {VALUES.map((v, i) => (
-              <motion.div
-                key={v.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.06 }}
-                className="group rounded-2xl border border-white/10 bg-white/5 p-6 shadow-lg ring-1 ring-inset ring-white/5"
-              >
-                <div
-                  className="mb-3 h-1 w-12 rounded-full"
-                  style={{ background: ACCENT }}
-                />
-                <h3 className="text-lg font-semibold">{v.title}</h3>
-                <p className="mt-2 text-sm text-white/80">{v.body}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Brief History (Timeline) */}
-      <section className="bg-[#0F2A5F]">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-          <motion.h2
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="mb-10 text-center text-2xl font-semibold sm:text-3xl"
-          >
-            Our Story
-          </motion.h2>
-
-          <div className="relative mx-auto max-w-3xl">
-            <div className="absolute left-4 top-0 h-full w-0.5 bg-white/15 sm:left-1/2 sm:-translate-x-1/2" />
-            <ul className="space-y-10">
-              {TIMELINE.map((node, idx) => (
-                <li
-                  key={idx}
-                  className="relative sm:grid sm:grid-cols-2 sm:items-start sm:gap-8"
-                >
-                  <div
-                    className={`sm:text-right ${
-                      idx % 2 ? "sm:col-start-2" : ""
-                    }`}
-                  >
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.4 }}
-                      className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/80 ring-1 ring-white/15"
-                    >
-                      {node.year}
-                    </motion.div>
-                    <h3 className="mt-3 text-lg font-semibold">{node.title}</h3>
-                    <p className="mt-2 text-sm text-white/80">{node.text}</p>
-                  </div>
-
-                  <div className="relative mt-4 sm:mt-0">
-                    <span
-                      className="absolute left-3 top-2 h-3 w-3 -translate-x-1/2 rounded-full ring-2 ring-[#0B1A33]"
-                      style={{ background: ACCENT }}
-                    />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* Leadership */}
-      <section>
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-          <motion.h2
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="mb-10 text-center text-2xl font-semibold sm:text-3xl"
-          >
-            Our Leadership
-          </motion.h2>
-
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {LEADERS.map((p, i) => (
-              <motion.article
-                key={p.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.05 }}
-                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 ring-1 ring-white/10"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full ring-2 ring-white/10">
-                    {/* Replace with real photos if available */}
-                    <Image src={p.photo} alt={p.name} width={56} height={56} />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold leading-tight">{p.name}</h3>
-                    <p className="text-sm text-white/70">{p.role}</p>
-                  </div>
-                </div>
-                <p className="mt-4 text-sm text-white/80">{p.bio}</p>
-              </motion.article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Ministries */}
-      <section className="bg-[#0F2A5F]">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-          <motion.h2
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="mb-8 text-center text-2xl font-semibold sm:text-3xl"
-          >
-            Our Ministries
-          </motion.h2>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {MINISTRIES.map((m, i) => (
-              <motion.div
-                key={m.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.06 }}
-                className="rounded-2xl border border-white/10 bg-white/5 p-6 ring-1 ring-inset ring-white/10"
-              >
-                <h3 className="font-semibold">{m.title}</h3>
-                <p className="mt-2 text-sm text-white/80">{m.body}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Call to Action */}
-      <section>
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 to-white/5 p-8 text-center ring-1 ring-white/10"
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.45 }}
+            className="church-card p-6"
           >
-            <h3 className="text-2xl font-semibold">Join Us This Sabbath</h3>
-            <p className="mx-auto mt-2 max-w-2xl text-white/80">
-              You are welcome to worship with us, join a small group, or serve
-              with one of our ministries.
-            </p>
-            <div className="mt-6 flex flex-wrap justify-center gap-4">
-              <CTA href="/events">See Events</CTA>
-              <CTA href="/contact" variant="outline">
-                Contact Us
-              </CTA>
+            <div className="flex items-center gap-4 border-b border-brand-line pb-5">
+              <div className="grid h-16 w-16 place-items-center rounded-lg bg-white">
+                <Image src="/sda_logo.svg" alt="SDA logo" width={52} height={52} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-brand-ink">
+                  Seventh-day Adventist Church
+                </p>
+                <p className="text-sm text-brand-muted">
+                  Maasai Mara University, Narok
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 grid gap-4 sm:grid-cols-3">
+              <Fact icon={<BookOpen className="h-5 w-5" />} title="Word" />
+              <Fact icon={<Music className="h-5 w-5" />} title="Worship" />
+              <Fact icon={<HeartHandshake className="h-5 w-5" />} title="Care" />
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      <section className="church-section">
+        <div className="church-container grid gap-6 md:grid-cols-2">
+          <InfoBlock
+            label="Mission"
+            title="Proclaim, nurture, and serve."
+            body="To share the everlasting gospel of Jesus Christ, disciple believers, and respond to practical needs across the university and surrounding community."
+          />
+          <InfoBlock
+            label="Vision"
+            title="A Christ-centered campus church."
+            body="A welcoming fellowship where every person belongs, grows, and serves while carrying the hope of Christ into classrooms, homes, and the wider community."
+          />
+        </div>
+      </section>
+
+      <section className="border-y border-brand-line bg-brand-mist">
+        <div className="church-container church-section">
+          <div className="max-w-2xl">
+            <p className="church-kicker">Values</p>
+            <h2 className="church-heading mt-3">What shapes our work</h2>
+          </div>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {values.map((value) => (
+              <article key={value.title} className="church-card-plain p-5">
+                <h3 className="font-semibold text-brand-ink">{value.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-brand-muted">
+                  {value.body}
+                </p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="church-section">
+        <div className="church-container grid gap-10 lg:grid-cols-[0.82fr_1.18fr]">
+          <div>
+            <p className="church-kicker">Ministries</p>
+            <h2 className="church-heading mt-3">Organized for repeated care</h2>
+            <p className="church-copy mt-4">
+              The database design supports ministries, leaders, members, events,
+              Bible study resources, visitations, and giving records so each
+              department can work from the same source of truth.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {ministries.map(([title, body]) => (
+              <article key={title} className="church-card-plain p-5">
+                <h3 className="font-semibold text-brand-ink">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-brand-muted">{body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-brand-line bg-brand-cream">
+        <div className="church-container church-section">
+          <div className="grid gap-10 lg:grid-cols-[1fr_1fr]">
+            <div>
+              <p className="church-kicker">Leadership</p>
+              <h2 className="church-heading mt-3">A shared ministry table</h2>
+              <div className="mt-6 grid gap-4">
+                {leaders.map(([title, body]) => (
+                  <article key={title} className="flex gap-4">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-brand-forest text-brand-cream">
+                      <Users className="h-5 w-5" />
+                    </span>
+                    <div>
+                      <h3 className="font-semibold text-brand-ink">{title}</h3>
+                      <p className="mt-1 text-sm leading-6 text-brand-muted">
+                        {body}
+                      </p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+
+            <div className="church-card p-6">
+              <p className="church-kicker">Our Story</p>
+              <ol className="mt-5 grid gap-5">
+                {[
+                  ["Foundation", "Students and believers gather for worship and Bible study."],
+                  ["Growth", "Ministries form around music, welfare, outreach, and youth work."],
+                  ["Today", "Digital records now support pastoral care and transparent planning."],
+                ].map(([title, body], index) => (
+                  <li key={title} className="flex gap-4">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-gold text-sm font-semibold text-brand-ink">
+                      {index + 1}
+                    </span>
+                    <div>
+                      <h3 className="font-semibold text-brand-ink">{title}</h3>
+                      <p className="mt-1 text-sm leading-6 text-brand-muted">
+                        {body}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
         </div>
       </section>
     </main>
   );
 }
 
-function Pill({ children }: { children: React.ReactNode }) {
+function Fact({ icon, title }: { icon: ReactNode; title: string }) {
   return (
-    <span
-      className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/80 backdrop-blur-sm"
-      style={{ boxShadow: "0 0 0 1px rgba(255,255,255,0.06) inset" }}
-    >
-      {children}
-    </span>
-  );
-}
-
-function CTA({
-  href,
-  children,
-  variant = "solid",
-}: {
-  href: string;
-  children: React.ReactNode;
-  variant?: "solid" | "outline";
-}) {
-  const base =
-    "inline-flex items-center justify-center rounded-xl px-5 py-2 text-sm font-medium transition";
-  if (variant === "outline")
-    return (
-      <Link
-        href={href}
-        className={`${base} border border-white/20 bg-transparent text-white hover:bg-white/10`}
-      >
-        {children}
-      </Link>
-    );
-  return (
-    <Link
-      href={href}
-      className={`${base} text-[#0B1A33] hover:brightness-110` + ""}
-      style={{ background: ACCENT }}
-    >
-      {children}
-    </Link>
-  );
-}
-
-function InfoCard({
-  title,
-  subtitle,
-  description,
-}: {
-  title: string;
-  subtitle: string;
-  description: string;
-}) {
-  return (
-    <motion.article
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5 }}
-      className="rounded-2xl border border-white/10 bg-white/5 p-6 ring-1 ring-white/10"
-    >
-      <p className="text-xs uppercase tracking-wider text-white/60">
-        {subtitle}
-      </p>
-      <h3 className="mt-1 text-xl font-semibold">{title}</h3>
-      <p className="mt-2 text-white/80">{description}</p>
-    </motion.article>
-  );
-}
-
-function BackgroundOrbs() {
-  return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
-    >
-      <div
-        className="absolute -left-16 -top-16 h-72 w-72 rounded-full blur-3xl opacity-20"
-        style={{ background: ACCENT }}
-      />
-      <div className="absolute -right-24 top-1/4 h-96 w-96 rounded-full bg-blue-400/20 blur-3xl" />
-      <div className="absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-cyan-300/10 blur-3xl" />
+    <div className="rounded-lg border border-brand-line bg-brand-mist p-4 text-center">
+      <div className="mx-auto grid h-9 w-9 place-items-center rounded-lg bg-brand-forest text-brand-cream">
+        {icon}
+      </div>
+      <p className="mt-2 text-sm font-semibold text-brand-ink">{title}</p>
     </div>
   );
 }
 
-const VALUES = [
-  {
-    title: "Biblical Truth",
-    body: "We anchor our faith and practice in the Scriptures as the living Word of God.",
-  },
-  {
-    title: "Prayer",
-    body: "We seek God’s presence and power through personal and corporate prayer.",
-  },
-  {
-    title: "Worship",
-    body: "We honor God with reverence, joy, and excellence in all we do.",
-  },
-  {
-    title: "Community",
-    body: "We belong together — caring, encouraging, and growing as a family of believers.",
-  },
-  {
-    title: "Service",
-    body: "We follow Jesus by serving our neighbors with compassion and humility.",
-  },
-  {
-    title: "Mission",
-    body: "We share the hope of the gospel locally and globally until His return.",
-  },
-];
-
-const TIMELINE = [
-  {
-    year: "19xx",
-    title: "Humble Beginnings",
-    text: "A small group of believers began meeting in homes to worship and study together.",
-  },
-  {
-    year: "2005",
-    title: "A Place to Call Home",
-    text: "By God’s grace the congregation acquired land and built our first sanctuary.",
-  },
-  {
-    year: "2016",
-    title: "Growing in Ministry",
-    text: "We launched youth, music, family, and community service ministries.",
-  },
-  {
-    year: "Today",
-    title: "Serving Our City",
-    text: "We continue to disciple, equip, and reach our community with Christ’s love.",
-  },
-];
-
-const LEADERS = [
-  {
-    name: "Pr. John Doe",
-    role: "Senior Pastor",
-    bio: "Passionate about discipleship, family ministry, and preaching the Word.",
-    photo:
-      "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?q=80&w=200&auto=format&fit=crop",
-  },
-  {
-    name: "Jane Smith",
-    role: "Head Elder",
-    bio: "Leads small groups and spiritual nurture with a heart for prayer.",
-    photo:
-      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop",
-  },
-  {
-    name: "Daniel Kim",
-    role: "Youth Leader",
-    bio: "Equipping the next generation to know Jesus and serve boldly.",
-    photo:
-      "https://images.unsplash.com/photo-1527980965255-d3b416303d12?q=80&w=200&auto=format&fit=crop",
-  },
-];
-
-const MINISTRIES = [
-  {
-    title: "Children & Adventurers",
-    body: "Building a strong faith foundation through Bible stories, crafts, and fun.",
-  },
-  {
-    title: "Pathfinders",
-    body: "Training young people for service, leadership, and outdoor skills.",
-  },
-  {
-    title: "Music Ministry",
-    body: "Leading worship in hymns and contemporary praise to glorify God.",
-  },
-  {
-    title: "Family Life",
-    body: "Supporting healthy homes through seminars, counseling, and fellowship.",
-  },
-  {
-    title: "Community Service",
-    body: "Food drives, visitations, and practical acts of kindness in our neighborhood.",
-  },
-  {
-    title: "Media & Tech",
-    body: "Spreading the message through livestreams, audio, and digital outreach.",
-  },
-];
+function InfoBlock({
+  label,
+  title,
+  body,
+}: {
+  label: string;
+  title: string;
+  body: string;
+}) {
+  return (
+    <article className="church-card p-6">
+      <p className="church-kicker">{label}</p>
+      <h2 className="mt-2 text-2xl font-semibold text-brand-ink">{title}</h2>
+      <p className="church-copy mt-3">{body}</p>
+    </article>
+  );
+}

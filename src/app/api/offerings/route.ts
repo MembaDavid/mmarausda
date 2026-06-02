@@ -1,23 +1,19 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-// ✅ GET all offerings
 export async function GET() {
   try {
     const offerings = await prisma.offering.findMany({
       include: {
-        user: {
-          select: { id: true, role: true },
-        },
+        fund: { select: { id: true, name: true, code: true, type: true } },
+        user: { select: { id: true, fullName: true, email: true, role: true } },
       },
-      orderBy: {
-        date: "desc", // newest first
-      },
+      orderBy: { date: "desc" },
     });
 
     return NextResponse.json(offerings);
   } catch (error) {
-    console.error("Error fetching offerings:", error);
+    console.error("GET /api/offerings error:", error);
     return NextResponse.json(
       { error: "Failed to fetch offerings" },
       { status: 500 }
@@ -25,14 +21,11 @@ export async function GET() {
   }
 }
 
-// ✅ POST create a new offering
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { userId, category, amount, paymentMethod, transactionId, date } =
-      body;
+    const { userId, category, amount, paymentMethod } = body;
 
-    // Validation
     if (!userId || !category || !amount || !paymentMethod) {
       return NextResponse.json(
         { error: "Missing required fields" },
@@ -40,33 +33,41 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if user exists
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma.user.findUnique({ where: { id: String(userId) } });
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Create offering
-    const newOffering = await prisma.offering.create({
+    const offering = await prisma.offering.create({
       data: {
-        userId,
+        userId: String(userId),
+        fundId: cleanString(body.fundId),
         category,
         amount,
+        currency: cleanString(body.currency) || "KES",
         paymentMethod,
-        transactionId,
-        date: date ? new Date(date) : undefined,
+        transactionId: cleanString(body.transactionId),
+        receiptNumber: cleanString(body.receiptNumber),
+        note: cleanString(body.note),
+        date: body.date ? new Date(String(body.date)) : undefined,
       },
       include: {
-        user: { select: { id: true, role: true } },
+        fund: { select: { id: true, name: true, code: true, type: true } },
+        user: { select: { id: true, fullName: true, email: true, role: true } },
       },
     });
 
-    return NextResponse.json(newOffering, { status: 201 });
+    return NextResponse.json(offering, { status: 201 });
   } catch (error) {
-    console.error("Error creating offering:", error);
+    console.error("POST /api/offerings error:", error);
     return NextResponse.json(
       { error: "Failed to create offering" },
       { status: 500 }
     );
   }
+}
+
+function cleanString(value: unknown) {
+  const text = String(value ?? "").trim();
+  return text.length ? text : undefined;
 }

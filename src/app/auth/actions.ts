@@ -37,12 +37,28 @@ async function ensureProfileFromSession(
   try {
     await prisma.user.upsert({
       where: { authUserId: user.id },
-      create: { authUserId: user.id }, // role defaults to GUEST (per your schema)
-      update: {},
+      create: {
+        authUserId: user.id,
+        email: user.email ?? null,
+        fullName: cleanString(user.user_metadata?.full_name),
+        phone: cleanString(user.user_metadata?.phone),
+        lastSeenAt: new Date(),
+      },
+      update: {
+        email: user.email ?? null,
+        fullName: cleanString(user.user_metadata?.full_name),
+        phone: cleanString(user.user_metadata?.phone),
+        lastSeenAt: new Date(),
+      },
     });
   } catch {
     // ignore unique race
   }
+}
+
+function cleanString(value: unknown) {
+  const text = String(value ?? "").trim();
+  return text.length ? text : null;
 }
 
 export async function login(formData: FormData) {

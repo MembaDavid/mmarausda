@@ -1,11 +1,20 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as motion from "motion/react-client";
-import Image from "next/image";
-import { supabaseBrowser } from "@/utils/supabase/client"; // <-- browser client
+import {
+  ChevronDown,
+  ExternalLink,
+  LogIn,
+  Menu,
+  ShieldCheck,
+  UserCircle,
+  X,
+} from "lucide-react";
+import { supabaseBrowser } from "@/utils/supabase/client";
 
 type NavItem = {
   label: string;
@@ -15,55 +24,53 @@ type NavItem = {
 
 const ADMIN_ROLES = new Set(["ADMIN", "EDITOR", "TREASURER", "CLERK"]);
 
+const navItems: NavItem[] = [
+  { label: "Home", href: "/" },
+  { label: "Events", href: "/events" },
+  {
+    label: "Resources",
+    href: "/resources",
+    sub: [
+      { label: "Resource Hub", href: "/resources" },
+      { label: "Sermons", href: "/resources/sermons" },
+      { label: "Bible Study", href: "/resources/bible_studies" },
+    ],
+  },
+  { label: "About", href: "/about" },
+  { label: "Contact", href: "/contact" },
+];
+
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [elevated, setElevated] = useState(false);
-
-  // auth state
   const [authed, setAuthed] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
-  const [role, setRole] = useState<string>("GUEST");
-
+  const [role, setRole] = useState("GUEST");
   const pathname = usePathname();
+  const closeTimer = useRef<number | null>(null);
 
-  // --- load auth state from supabase on mount + listen for changes
   useEffect(() => {
-    const s = supabaseBrowser();
-    s.auth.getUser().then(({ data }) => {
-      const u = data.user;
-      setAuthed(!!u);
-      setEmail(u?.email ?? null);
-      const r =
-        (u?.user_metadata as any)?.role ??
-        (u?.app_metadata as any)?.role ??
-        "GUEST";
-      setRole(String(r || "GUEST").toUpperCase());
+    const supabase = supabaseBrowser();
+
+    supabase.auth.getUser().then(({ data }) => {
+      const user = data.user;
+      setAuthed(Boolean(user));
+      setEmail(user?.email ?? null);
+      setRole(readRole(user));
     });
+
     const {
       data: { subscription },
-    } = s.auth.onAuthStateChange((_event, session) => {
-      const u = session?.user ?? null;
-      setAuthed(!!u);
-      setEmail(u?.email ?? null);
-      const r =
-        (u?.user_metadata as any)?.role ??
-        (u?.app_metadata as any)?.role ??
-        "GUEST";
-      setRole(String(r || "GUEST").toUpperCase());
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user ?? null;
+      setAuthed(Boolean(user));
+      setEmail(user?.email ?? null);
+      setRole(readRole(user));
     });
+
     return () => subscription?.unsubscribe();
   }, []);
-
-  // --- existing hover timer for Resources dropdown
-  const closeTimer = useRef<number | null>(null);
-  const openMenu = (label: string) => {
-    if (closeTimer.current) window.clearTimeout(closeTimer.current);
-    setOpenDropdown(label);
-  };
-  const scheduleClose = () => {
-    closeTimer.current = window.setTimeout(() => setOpenDropdown(null), 130);
-  };
 
   useEffect(() => {
     const onScroll = () => setElevated(window.scrollY > 8);
@@ -72,282 +79,155 @@ export default function Header() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const navItems: NavItem[] = [
-    { label: "Home", href: "/" },
-    { label: "Events", href: "/events" },
-    {
-      label: "Resources",
-      href: "#",
-      sub: [
-        { label: "Sermons", href: "/resources/sermons" },
-        { label: "Hymns", href: "/resources/hymns" },
-        { label: "Bible Study", href: "/resources/bible_studies" },
-      ],
-    },
-    { label: "About", href: "/about" },
-    { label: "Contact", href: "/contact" },
-  ];
+  const openMenu = (label: string) => {
+    if (closeTimer.current) window.clearTimeout(closeTimer.current);
+    setOpenDropdown(label);
+  };
 
-  // small avatar/initials from email
-  const initials =
-    email?.trim().slice(0, 1).toUpperCase() || role.slice(0, 1) || "U";
+  const scheduleClose = () => {
+    closeTimer.current = window.setTimeout(() => setOpenDropdown(null), 120);
+  };
 
-  // client-side sign out (clears sb cookies and reloads)
   const signOut = async () => {
-    const s = supabaseBrowser();
-    await s.auth.signOut();
-    // Prefer a soft refresh to re-render header quickly
+    await supabaseBrowser().auth.signOut();
     window.location.assign("/auth/login");
   };
+
+  const initials =
+    email?.trim().slice(0, 1).toUpperCase() || role.slice(0, 1) || "U";
 
   return (
     <header
       className={[
-        "fixed inset-x-0 top-0 z-50",
-        "transition-shadow",
-        elevated ? "shadow-[0_8px_30px_rgb(2,2,2,0.35)]" : "shadow-none",
+        "fixed inset-x-0 top-0 z-50 border-b transition",
+        elevated
+          ? "border-brand-line bg-brand-cream/92 shadow-sm backdrop-blur-xl"
+          : "border-transparent bg-brand-cream/80 backdrop-blur-lg",
       ].join(" ")}
     >
-      {/* gradient accent */}
-      <motion.div
-        aria-hidden
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
-        className="h-[2px] w-full bg-gradient-to-r from-yellow-300 via-amber-400 to-rose-400"
-      />
+      <div className="h-1 w-full bg-[linear-gradient(90deg,var(--brand-forest),var(--brand-gold),var(--brand-navy))]" />
+      <div className="church-container flex items-center justify-between py-3">
+        <Link href="/" className="flex min-w-0 items-center gap-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-brand-line bg-white shadow-sm">
+            <Image
+              src="/sda_logo.svg"
+              alt="SDA logo"
+              width={32}
+              height={32}
+              priority
+              className="h-8 w-8 object-contain"
+            />
+          </span>
+          <span className="min-w-0 leading-tight">
+            <span className="block truncate text-sm font-semibold text-brand-ink sm:text-base">
+              Maasai Mara University SDA Church
+            </span>
+            <span className="block text-xs text-brand-muted">
+              Worship. Fellowship. Service.
+            </span>
+          </span>
+        </Link>
 
-      <div className="supports-[backdrop-filter]:backdrop-blur-xl bg-black/55">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-          {/* Brand */}
-          <Link href="/" className="group flex items-center gap-3">
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 300, damping: 18 }}
-              className="h-9 w-9 shrink-0"
-            >
-              <Image
-                src="/sda_logo.svg"
-                alt="SDA Logo"
-                width={36}
-                height={36}
-                priority
-                className="h-full w-full object-contain"
-              />
-            </motion.div>
+        <nav className="hidden items-center gap-1 md:flex" aria-label="Main">
+          {navItems.map((item) => (
+            <DesktopNavItem
+              key={item.label}
+              item={item}
+              pathname={pathname}
+              openDropdown={openDropdown}
+              openMenu={openMenu}
+              scheduleClose={scheduleClose}
+            />
+          ))}
+        </nav>
 
-            <div className="leading-tight">
-              <span className="block text-[10px] xs:text-[11px] sm:text-xs md:text-[13px] font-medium tracking-wide text-white/90">
-                Seventh-day Adventist Maasai Mara University Church
-              </span>
-              <span className="block text-[9px] sm:text-[10px] text-white/60">
-                Narok, Kenya
-              </span>
-            </div>
-          </Link>
-
-          {/* Desktop Nav */}
-          <nav className="relative hidden items-center gap-6 md:flex">
-            {navItems.map((item) => {
-              const hasSub = !!item.sub?.length;
-              const active = item.href !== "#" && pathname === item.href;
-
-              return (
-                <div
-                  key={item.label}
-                  className={[
-                    "relative group pb-3",
-                    "before:content-[''] before:absolute before:left-0 before:top-full before:h-3 before:w-full",
-                  ].join(" ")}
-                  onMouseEnter={() =>
-                    hasSub ? openMenu(item.label) : undefined
-                  }
-                  onMouseLeave={() => (hasSub ? scheduleClose() : undefined)}
+        <div className="hidden items-center gap-2 md:flex">
+          {!authed ? (
+            <>
+              <Link href="/auth/login" className="church-button-secondary">
+                <LogIn className="h-4 w-4" />
+                Login
+              </Link>
+              <Link href="/auth/register" className="church-button-accent">
+                Register
+              </Link>
+            </>
+          ) : (
+            <details className="relative">
+              <summary className="flex cursor-pointer list-none items-center gap-2 rounded-lg border border-brand-line bg-white/80 px-2.5 py-2 text-sm text-brand-ink">
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-brand-forest text-xs font-semibold text-brand-cream">
+                  {initials}
+                </span>
+                <span className="hidden max-w-44 truncate lg:block">
+                  {email}
+                </span>
+                <span className="church-badge py-0.5">{role}</span>
+                <ChevronDown className="h-4 w-4 text-brand-muted" />
+              </summary>
+              <div className="absolute right-0 mt-2 w-56 rounded-lg border border-brand-line bg-brand-cream p-2 shadow-xl">
+                <Link
+                  href="/onboarding"
+                  className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-brand-ink hover:bg-brand-mist"
                 >
+                  <UserCircle className="h-4 w-4" />
+                  Profile
+                </Link>
+                {ADMIN_ROLES.has(role) ? (
                   <Link
-                    href={item.href}
-                    className={[
-                      "relative px-1 text-sm tracking-wide text-white/85 transition-colors",
-                      active ? "text-yellow-300" : "hover:text-yellow-300",
-                    ].join(" ")}
-                    onFocus={() => hasSub && openMenu(item.label)}
-                    onBlur={() => hasSub && scheduleClose()}
+                    href="/admin"
+                    className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-brand-forest-dark hover:bg-brand-mist"
                   >
-                    {item.label}
-                    <motion.span
-                      className="absolute -bottom-1 left-0 right-0 h-[2px]"
-                      initial={false}
-                      animate={{ scaleX: active ? 1 : 0 }}
-                      style={{
-                        transformOrigin: "left",
-                        background: "linear-gradient(90deg,#FDE047,#FB923C)",
-                      }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 400,
-                        damping: 30,
-                      }}
-                    />
+                    <ShieldCheck className="h-4 w-4" />
+                    Admin
                   </Link>
-
-                  {/* Dropdown */}
-                  {hasSub && openDropdown === item.label && (
-                    <motion.div
-                      key="dropdown"
-                      initial={{ opacity: 0, y: 6, scale: 0.99 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 6, scale: 0.99 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 260,
-                        damping: 22,
-                      }}
-                      className="absolute left-0 top-full z-50 w-64 overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/95 p-2 backdrop-blur-xl shadow-2xl"
-                      onMouseEnter={() => openMenu(item.label)}
-                      onMouseLeave={scheduleClose}
-                      role="menu"
-                      aria-label={item.label}
-                    >
-                      {item.sub!.map((sub) => {
-                        const subActive = pathname === sub.href;
-                        return (
-                          <Link
-                            key={sub.label}
-                            href={sub.href}
-                            className={[
-                              "flex items-center justify-between rounded-xl px-3 py-2 text-sm transition-colors",
-                              subActive
-                                ? "bg-white/5 text-yellow-300"
-                                : "text-white/90 hover:bg-white/5 hover:text-yellow-300",
-                            ].join(" ")}
-                          >
-                            <span>{sub.label}</span>
-                            <span aria-hidden>↗</span>
-                          </Link>
-                        );
-                      })}
-                    </motion.div>
-                  )}
-                </div>
-              );
-            })}
-
-            {/* RIGHT SIDE (desktop): auth-aware */}
-            {!authed ? (
-              <div className="flex items-center gap-3">
-                <Link
-                  href="/auth/login"
-                  className="rounded-xl px-3 py-2 text-sm text-white/90 ring-1 ring-white/15 hover:bg-white/5"
+                ) : null}
+                <button
+                  onClick={signOut}
+                  className="w-full rounded-md px-3 py-2 text-left text-sm text-brand-muted hover:bg-brand-mist hover:text-brand-ink"
                 >
-                  Login
-                </Link>
-                <Link
-                  href="/auth/register"
-                  className="rounded-xl px-3 py-2 text-sm text-black bg-yellow-300 hover:bg-yellow-400"
-                >
-                  Register
-                </Link>
+                  Sign out
+                </button>
               </div>
-            ) : (
-              <div className="relative">
-                <details className="group">
-                  <summary className="list-none flex items-center gap-2 cursor-pointer">
-                    <span className="rounded-full w-8 h-8 grid place-items-center bg-white/15 text-white">
-                      {initials}
-                    </span>
-                    <span className="hidden lg:inline text-sm text-white/85">
-                      {email}
-                    </span>
-                    <span className="ml-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/80 uppercase tracking-wide">
-                      {role}
-                    </span>
-                  </summary>
-                  <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/95 backdrop-blur-xl shadow-2xl">
-                    <div className="p-2">
-                      <Link
-                        href="/onboarding"
-                        className="block rounded-xl px-3 py-2 text-sm text-white/90 hover:bg-white/5"
-                      >
-                        Onboarding
-                      </Link>
-                      <Link
-                        href="/account"
-                        className="block rounded-xl px-3 py-2 text-sm text-white/90 hover:bg-white/5"
-                      >
-                        Account
-                      </Link>
-                      {ADMIN_ROLES.has(role) && (
-                        <Link
-                          href="/admin"
-                          className="block rounded-xl px-3 py-2 text-sm text-amber-300 hover:bg-white/5"
-                        >
-                          Admin
-                        </Link>
-                      )}
-                      <button
-                        onClick={signOut}
-                        className="mt-1 w-full text-left rounded-xl px-3 py-2 text-sm text-white/90 hover:bg-white/5"
-                      >
-                        Sign out
-                      </button>
-                    </div>
-                  </div>
-                </details>
-              </div>
-            )}
-          </nav>
-
-          {/* Mobile toggle */}
-          <button
-            className="inline-flex items-center justify-center rounded-xl px-3 py-2 text-white/90 ring-1 ring-white/15 md:hidden"
-            onClick={() => setMobileOpen((v) => !v)}
-            aria-expanded={mobileOpen}
-            aria-controls="mobile-nav"
-            aria-label="Toggle menu"
-          >
-            <motion.span
-              key={mobileOpen ? "close" : "open"}
-              initial={{ rotate: -90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="text-lg"
-            >
-              {mobileOpen ? "✕" : "☰"}
-            </motion.span>
-          </button>
+            </details>
+          )}
         </div>
+
+        <button
+          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-brand-line bg-white/80 text-brand-ink md:hidden"
+          onClick={() => setMobileOpen((value) => !value)}
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-nav"
+          aria-label="Toggle menu"
+        >
+          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
       </div>
 
-      {/* Mobile Nav */}
       <motion.div
         id="mobile-nav"
         initial={false}
-        animate={{
-          height: mobileOpen ? "auto" : 0,
-          opacity: mobileOpen ? 1 : 0,
-        }}
-        transition={{ duration: 0.28, ease: "easeOut" }}
-        className="overflow-hidden bg-black/90 backdrop-blur-xl md:hidden"
+        animate={{ height: mobileOpen ? "auto" : 0, opacity: mobileOpen ? 1 : 0 }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
+        className="overflow-hidden border-t border-brand-line bg-brand-cream md:hidden"
       >
-        <div className="space-y-1 px-4 pb-4 pt-2">
+        <div className="church-container space-y-2 py-4">
           {navItems.map((item) => (
-            <div key={item.label} className="w-full">
+            <div key={item.label}>
               <Link
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className="block w-full rounded-xl px-3 py-2 text-white/90 ring-1 ring-white/10 bg-white/0 hover:bg-white/5 transition-colors"
+                className={mobileLinkClass(pathname, item.href)}
               >
                 {item.label}
               </Link>
-
               {item.sub?.length ? (
-                <div className="ml-3 mt-2 space-y-1">
+                <div className="mt-1 grid gap-1 pl-3">
                   {item.sub.map((sub) => (
                     <Link
-                      key={sub.label}
+                      key={sub.href}
                       href={sub.href}
                       onClick={() => setMobileOpen(false)}
-                      className="block rounded-lg px-3 py-2 text-sm text-white/75 hover:text-yellow-300 hover:bg-white/5 transition-colors"
+                      className={mobileLinkClass(pathname, sub.href, true)}
                     >
                       {sub.label}
                     </Link>
@@ -357,55 +237,47 @@ export default function Header() {
             </div>
           ))}
 
-          {/* Auth area (mobile) */}
           {!authed ? (
-            <div className="mt-2 flex gap-2">
+            <div className="grid grid-cols-2 gap-2 pt-2">
               <Link
                 href="/auth/login"
                 onClick={() => setMobileOpen(false)}
-                className="flex-1 text-center rounded-xl px-3 py-2 text-white/90 ring-1 ring-white/15"
+                className="church-button-secondary"
               >
                 Login
               </Link>
               <Link
                 href="/auth/register"
                 onClick={() => setMobileOpen(false)}
-                className="flex-1 text-center rounded-xl px-3 py-2 text-black bg-yellow-300"
+                className="church-button-accent"
               >
                 Register
               </Link>
             </div>
           ) : (
-            <div className="mt-2 grid grid-cols-2 gap-2">
+            <div className="grid gap-2 pt-2">
               <Link
                 href="/onboarding"
                 onClick={() => setMobileOpen(false)}
-                className="rounded-xl px-3 py-2 text-center text-white/90 ring-1 ring-white/10"
+                className="church-button-secondary"
               >
-                Onboarding
+                Profile
               </Link>
-              <Link
-                href="/account"
-                onClick={() => setMobileOpen(false)}
-                className="rounded-xl px-3 py-2 text-center text-white/90 ring-1 ring-white/10"
-              >
-                Account
-              </Link>
-              {ADMIN_ROLES.has(role) && (
+              {ADMIN_ROLES.has(role) ? (
                 <Link
                   href="/admin"
                   onClick={() => setMobileOpen(false)}
-                  className="col-span-2 rounded-xl px-3 py-2 text-center text-amber-300 ring-1 ring-white/10"
+                  className="church-button"
                 >
                   Admin
                 </Link>
-              )}
+              ) : null}
               <button
                 onClick={() => {
                   setMobileOpen(false);
                   void signOut();
                 }}
-                className="col-span-2 rounded-xl px-3 py-2 text-center text-white/90 ring-1 ring-white/10"
+                className="church-button-secondary"
               >
                 Sign out
               </button>
@@ -415,4 +287,91 @@ export default function Header() {
       </motion.div>
     </header>
   );
+}
+
+function DesktopNavItem({
+  item,
+  pathname,
+  openDropdown,
+  openMenu,
+  scheduleClose,
+}: {
+  item: NavItem;
+  pathname: string;
+  openDropdown: string | null;
+  openMenu: (label: string) => void;
+  scheduleClose: () => void;
+}) {
+  const hasSub = Boolean(item.sub?.length);
+  const active = isActive(pathname, item.href);
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => (hasSub ? openMenu(item.label) : undefined)}
+      onMouseLeave={() => (hasSub ? scheduleClose() : undefined)}
+    >
+      <Link
+        href={item.href}
+        className={[
+          "inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition",
+          active
+            ? "bg-brand-mist text-brand-forest-dark"
+            : "text-brand-muted hover:bg-brand-mist hover:text-brand-ink",
+        ].join(" ")}
+        onFocus={() => hasSub && openMenu(item.label)}
+        onBlur={() => hasSub && scheduleClose()}
+      >
+        {item.label}
+        {hasSub ? <ChevronDown className="h-3.5 w-3.5" /> : null}
+      </Link>
+
+      {hasSub && openDropdown === item.label ? (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.16 }}
+          className="absolute left-0 top-[calc(100%+0.5rem)] z-50 w-60 rounded-lg border border-brand-line bg-brand-cream p-2 shadow-xl"
+          role="menu"
+          aria-label={item.label}
+        >
+          {item.sub!.map((sub) => (
+            <Link
+              key={sub.href}
+              href={sub.href}
+              className={[
+                "flex items-center justify-between rounded-md px-3 py-2 text-sm transition",
+                isActive(pathname, sub.href)
+                  ? "bg-brand-mist text-brand-forest-dark"
+                  : "text-brand-muted hover:bg-brand-mist hover:text-brand-ink",
+              ].join(" ")}
+            >
+              <span>{sub.label}</span>
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Link>
+          ))}
+        </motion.div>
+      ) : null}
+    </div>
+  );
+}
+
+function readRole(user: any) {
+  const raw = user?.user_metadata?.role ?? user?.app_metadata?.role ?? "GUEST";
+  return String(raw || "GUEST").toUpperCase();
+}
+
+function isActive(pathname: string, href: string) {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function mobileLinkClass(pathname: string, href: string, nested = false) {
+  return [
+    "block rounded-lg px-3 py-2 text-sm font-medium transition",
+    nested ? "text-sm" : "",
+    isActive(pathname, href)
+      ? "bg-brand-mist text-brand-forest-dark"
+      : "text-brand-muted hover:bg-brand-mist hover:text-brand-ink",
+  ].join(" ");
 }
